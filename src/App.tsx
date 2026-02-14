@@ -16,6 +16,7 @@ import ComoFunciona from "./pages/ComoFunciona";
 import WhatsAppFloat from "./components/WhatsAppFloat";
 import LeadCapturePopup from "./components/LeadCapturePopup";
 import AdminLeads from "./pages/admin/AdminLeads";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="reports" element={<AdminReports />} />
               <Route path="leads" element={<AdminLeads />} />
               <Route path="users" element={<AdminUsers />} />
+              <Route path="settings" element={<AdminSettings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

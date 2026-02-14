@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet, useNavigate, NavLink } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Package, BarChart3, LogOut, Flame, Home, Tags, Users, MessageCircle } from 'lucide-react';
+import { Package, BarChart3, LogOut, Flame, Home, Tags, Users, MessageCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const AdminLayout = () => {
@@ -54,6 +54,9 @@ const AdminLayout = () => {
           </NavLink>
           <NavLink to="/admin/users" className={linkClass}>
             <Users className="w-4 h-4" /> Usuários
+          </NavLink>
+          <NavLink to="/admin/settings" className={linkClass}>
+            <Settings className="w-4 h-4" /> Configurações
           </NavLink>
         </nav>
         <div className="p-3 border-t border-border space-y-1">

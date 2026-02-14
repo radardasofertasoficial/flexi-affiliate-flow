@@ -32,6 +32,45 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_modal_config: {
+        Row: {
+          id: string
+          options: Json
+          step1_description: string
+          step1_title: string
+          step2_description: string
+          step2_title: string
+          tags: string[]
+          updated_at: string
+          whatsapp_group_link: string
+          whatsapp_number: string
+        }
+        Insert: {
+          id?: string
+          options?: Json
+          step1_description?: string
+          step1_title?: string
+          step2_description?: string
+          step2_title?: string
+          tags?: string[]
+          updated_at?: string
+          whatsapp_group_link?: string
+          whatsapp_number?: string
+        }
+        Update: {
+          id?: string
+          options?: Json
+          step1_description?: string
+          step1_title?: string
+          step2_description?: string
+          step2_title?: string
+          tags?: string[]
+          updated_at?: string
+          whatsapp_group_link?: string
+          whatsapp_number?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           created_at: string
