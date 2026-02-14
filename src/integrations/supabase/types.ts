@@ -193,9 +193,11 @@ export type Database = {
           reviews: number | null
           sales_count: number | null
           show_sales: boolean | null
+          show_views: boolean | null
           store: string
           title: string
           updated_at: string
+          views_count: number | null
         }
         Insert: {
           active?: boolean | null
@@ -214,9 +216,11 @@ export type Database = {
           reviews?: number | null
           sales_count?: number | null
           show_sales?: boolean | null
+          show_views?: boolean | null
           store?: string
           title: string
           updated_at?: string
+          views_count?: number | null
         }
         Update: {
           active?: boolean | null
@@ -235,9 +239,11 @@ export type Database = {
           reviews?: number | null
           sales_count?: number | null
           show_sales?: boolean | null
+          show_views?: boolean | null
           store?: string
           title?: string
           updated_at?: string
+          views_count?: number | null
         }
         Relationships: []
       }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Star, ExternalLink, MessageCircle } from 'lucide-react';
+import { Star, ExternalLink, MessageCircle, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Product } from '@/types/database';
 import LeadCaptureModal, { isLeadRegistered } from '@/components/LeadCaptureModal';
@@ -13,7 +13,7 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, index }: ProductCardProps) => {
   const [modalOpen, setModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'offer' | 'vale_pena' | 'pergunta' | null>(null);
+  const [pendingAction, setPendingAction] = useState<'offer' | 'pergunta' | null>(null);
   const { data: platforms = [] } = useActivePlatforms();
 
   const platform = platforms.find(p => p.slug === product.store);
@@ -46,12 +46,12 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
     }
   };
 
-  const handleWhatsApp = (leadType: string, message: string) => {
+  const handleWhatsApp = (message: string) => {
     if (isLeadRegistered()) {
       const encoded = encodeURIComponent(message);
       window.open(`https://wa.me/5515981184423?text=${encoded}`, '_blank', 'noopener,noreferrer');
     } else {
-      setPendingAction(leadType === 'produto_vale_pena' ? 'vale_pena' : 'pergunta');
+      setPendingAction('pergunta');
       setModalOpen(true);
     }
   };
@@ -59,9 +59,6 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
   const handleModalSuccess = () => {
     if (pendingAction === 'offer') {
       logClickAndOpen();
-    } else if (pendingAction === 'vale_pena') {
-      const msg = encodeURIComponent(`Olá! Vi o produto ${product.title} no site e quero saber se vale a pena.`);
-      window.open(`https://wa.me/5515981184423?text=${msg}`, '_blank', 'noopener,noreferrer');
     } else if (pendingAction === 'pergunta') {
       const msg = encodeURIComponent(`Olá! Vi o produto ${product.title} no site e quero mais informações.`);
       window.open(`https://wa.me/5515981184423?text=${msg}`, '_blank', 'noopener,noreferrer');
@@ -163,21 +160,20 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
             <ExternalLink className="w-4 h-4" />
           </button>
 
-          <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2">
             <button
-              onClick={() => handleWhatsApp('produto_vale_pena', `Olá! Vi o produto ${product.title} no site e quero saber se vale a pena.`)}
-              className="flex items-center justify-center gap-1 bg-[#25D366] hover:bg-[#1da851] text-white text-[11px] font-medium py-2 px-1 rounded-lg transition-colors"
+              onClick={() => handleWhatsApp(`Olá! Vi o produto ${product.title} no site e quero mais informações.`)}
+              className="flex-1 flex items-center justify-center gap-1 bg-[#25D366] hover:bg-[#1da851] text-white text-[11px] font-medium py-2 px-1 rounded-lg transition-colors"
             >
               <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">Vale a pena?</span>
+              <span className="truncate">Perguntar no WhatsApp</span>
             </button>
-            <button
-              onClick={() => handleWhatsApp('produto_pergunta', `Olá! Vi o produto ${product.title} no site e quero mais informações.`)}
-              className="flex items-center justify-center gap-1 bg-[#25D366] hover:bg-[#1da851] text-white text-[11px] font-medium py-2 px-1 rounded-lg transition-colors"
-            >
-              <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">Perguntar</span>
-            </button>
+            {(product as any).show_views && ((product as any).views_count ?? 0) > 0 && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+                <Eye className="w-3.5 h-3.5" />
+                {Number((product as any).views_count).toLocaleString('pt-BR')}
+              </span>
+            )}
           </div>
         </div>
       </div>
