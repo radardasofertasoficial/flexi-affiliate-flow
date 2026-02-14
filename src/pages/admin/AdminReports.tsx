@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Download, BarChart3, CalendarIcon, Trophy, TrendingUp } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Download, BarChart3, CalendarIcon, Trophy, TrendingUp, ChevronDown, Filter, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -15,6 +16,8 @@ interface ClickReport {
   image: string | null;
   category: string;
   clicks: number;
+  price: number;
+  affiliate_url: string;
 }
 
 const AdminReports = () => {
@@ -23,6 +26,9 @@ const AdminReports = () => {
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState<Date>(startOfDay(new Date()));
   const [dateTo, setDateTo] = useState<Date>(endOfDay(new Date()));
+  const [clickFilter, setClickFilter] = useState<'all' | 'with' | 'without'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showAllCategories, setShowAllCategories] = useState(false);
   const { toast } = useToast();
 
   const fetchReport = async () => {
@@ -42,27 +48,42 @@ const AdminReports = () => {
 
     const { data: products } = await supabase
       .from('products')
-      .select('id, title, image, category');
+      .select('id, title, image, category, price, affiliate_url');
 
     const clickCount: Record<string, number> = {};
     (clicks || []).forEach((c: any) => {
       clickCount[c.product_id] = (clickCount[c.product_id] || 0) + 1;
     });
 
-    const productMap: Record<string, { title: string; image: string | null; category: string }> = {};
+    const rows: ClickReport[] = [];
     ((products as any[]) || []).forEach((p: any) => {
-      productMap[p.id] = { title: p.title, image: p.image, category: p.category };
+      rows.push({
+        product_id: p.id,
+        title: p.title,
+        image: p.image,
+        category: p.category,
+        price: p.price,
+        affiliate_url: p.affiliate_url,
+        clicks: clickCount[p.id] || 0,
+      });
     });
 
-    const rows: ClickReport[] = Object.entries(clickCount)
-      .map(([product_id, clicks]) => ({
-        product_id,
-        title: productMap[product_id]?.title || 'Produto removido',
-        image: productMap[product_id]?.image || null,
-        category: productMap[product_id]?.category || 'Sem categoria',
-        clicks,
-      }))
-      .sort((a, b) => b.clicks - a.clicks);
+    // Also add clicked products that may have been removed
+    Object.entries(clickCount).forEach(([product_id, count]) => {
+      if (!rows.find(r => r.product_id === product_id)) {
+        rows.push({
+          product_id,
+          title: 'Produto removido',
+          image: null,
+          category: 'Sem categoria',
+          price: 0,
+          affiliate_url: '#',
+          clicks: count,
+        });
+      }
+    });
+
+    rows.sort((a, b) => b.clicks - a.clicks);
 
     setReport(rows);
     setTotalClicks((clicks || []).length);
@@ -82,14 +103,36 @@ const AdminReports = () => {
   report.forEach((r) => {
     categoryClicks[r.category] = (categoryClicks[r.category] || 0) + r.clicks;
   });
-  const topCategory = Object.entries(categoryClicks).sort((a, b) => b[1] - a[1])[0];
+  const sortedCategories = Object.entries(categoryClicks)
+    .map(([name, clicks]) => ({ name, clicks }))
+    .sort((a, b) => b.clicks - a.clicks);
+  const top3Categories = sortedCategories.slice(0, 3);
+  const restCategories = sortedCategories.slice(3);
 
-  const top5 = report.slice(0, 5);
-  const rest = report.slice(5);
+  // Apply filters
+  const filteredReport = report.filter(r => {
+    if (clickFilter === 'with' && r.clicks === 0) return false;
+    if (clickFilter === 'without' && r.clicks > 0) return false;
+    if (selectedCategory && r.category !== selectedCategory) return false;
+    return true;
+  });
+
+  const productsWithClicks = report.filter(r => r.clicks > 0).length;
+  const totalProducts = report.length;
+  const topProduct = report.find(r => r.clicks > 0);
+
+  const top5 = filteredReport.filter(r => r.clicks > 0).slice(0, 5);
+  const rest = clickFilter === 'without'
+    ? filteredReport
+    : filteredReport.slice(filteredReport.filter(r => r.clicks > 0).length > 5 ? 5 : filteredReport.filter(r => r.clicks > 0).length);
+
+  // Simplify rest: everything not in top5
+  const top5Ids = new Set(top5.map(r => r.product_id));
+  const restItems = filteredReport.filter(r => !top5Ids.has(r.product_id));
 
   const exportCSV = () => {
-    const header = 'Produto,Categoria,Cliques\n';
-    const rows = report.map((r) => `"${r.title}","${r.category}",${r.clicks}`).join('\n');
+    const header = 'Produto,Categoria,Cliques,Preço\n';
+    const rows = report.map((r) => `"${r.title}","${r.category}",${r.clicks},${r.price}`).join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -97,6 +140,24 @@ const AdminReports = () => {
     a.download = `relatorio-cliques-${format(dateFrom, 'yyyy-MM-dd')}_${format(dateTo, 'yyyy-MM-dd')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const ProductImage = ({ item, size = 'md' }: { item: ClickReport; size?: 'sm' | 'md' }) => {
+    const sizeClass = size === 'sm' ? 'w-10 h-10' : 'w-16 h-16';
+    const content = item.image ? (
+      <img src={item.image} alt={item.title} className={cn(sizeClass, "rounded-lg object-cover cursor-pointer hover:opacity-80 transition")} />
+    ) : (
+      <div className={cn(sizeClass, "rounded-lg bg-secondary flex items-center justify-center text-muted-foreground text-[10px]")}>Sem img</div>
+    );
+
+    if (item.affiliate_url && item.affiliate_url !== '#') {
+      return (
+        <a href={item.affiliate_url} target="_blank" rel="noopener noreferrer" title="Abrir anúncio">
+          {content}
+        </a>
+      );
+    }
+    return content;
   };
 
   return (
@@ -142,77 +203,143 @@ const AdminReports = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div className="bg-card rounded-xl border border-border p-5">
           <p className="text-sm text-muted-foreground">Total de Cliques</p>
           <p className="text-3xl font-display font-bold text-cta">{totalClicks}</p>
         </div>
         <div className="bg-card rounded-xl border border-border p-5">
           <p className="text-sm text-muted-foreground">Produtos com Cliques</p>
-          <p className="text-3xl font-display font-bold">{report.length}</p>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-5">
-          <p className="text-sm text-muted-foreground">Média por Produto</p>
-          <p className="text-3xl font-display font-bold">
-            {report.length > 0 ? (totalClicks / report.length).toFixed(1) : '0'}
-          </p>
+          <p className="text-3xl font-display font-bold">{productsWithClicks} <span className="text-base font-normal text-muted-foreground">de {totalProducts}</span></p>
         </div>
         <div className="bg-card rounded-xl border border-border p-5">
           <p className="text-sm text-muted-foreground">Mais Clicado</p>
-          <p className="text-lg font-display font-bold truncate" title={top5[0]?.title}>
-            {top5[0]?.title || '—'}
-          </p>
-          {top5[0] && <p className="text-xs text-muted-foreground">{top5[0].clicks} cliques</p>}
+          {topProduct ? (
+            <div className="flex items-center gap-3 mt-1">
+              <ProductImage item={topProduct} size="sm" />
+              <div className="min-w-0">
+                <p className="text-sm font-bold truncate" title={topProduct.title}>{topProduct.title}</p>
+                <p className="text-xs text-muted-foreground">{topProduct.clicks} cliques • R$ {topProduct.price.toFixed(2)}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-lg font-display font-bold">—</p>
+          )}
         </div>
       </div>
 
-      {/* Top Category */}
-      {topCategory && (
-        <div className="bg-card rounded-xl border border-border p-5 mb-6 flex items-center gap-3">
-          <Trophy className="w-6 h-6 text-cta shrink-0" />
-          <div>
-            <p className="text-sm text-muted-foreground">Categoria Mais Clicada</p>
-            <p className="text-xl font-display font-bold">{topCategory[0]} <span className="text-sm font-normal text-muted-foreground">({topCategory[1]} cliques)</span></p>
+      {/* Category Ranking */}
+      {sortedCategories.length > 0 && (
+        <div className="bg-card rounded-xl border border-border p-5 mb-6">
+          <h2 className="font-display text-lg font-bold mb-3">Categorias Mais Clicadas</h2>
+          <div className="space-y-2">
+            {top3Categories.map((cat, i) => (
+              <button
+                key={cat.name}
+                onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-lg transition text-left",
+                  selectedCategory === cat.name
+                    ? "bg-primary/10 border border-primary/30"
+                    : "hover:bg-secondary/50"
+                )}
+              >
+                {i === 0 ? <Trophy className="w-5 h-5 text-cta shrink-0" /> : <span className="w-5 h-5 flex items-center justify-center text-sm font-bold text-muted-foreground shrink-0">#{i + 1}</span>}
+                <span className="font-medium flex-1">{cat.name}</span>
+                <span className="text-sm text-muted-foreground">{cat.clicks} cliques</span>
+              </button>
+            ))}
           </div>
+          {restCategories.length > 0 && (
+            <Collapsible open={showAllCategories} onOpenChange={setShowAllCategories}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="mt-2 w-full text-muted-foreground">
+                  <ChevronDown className={cn("w-4 h-4 mr-1 transition-transform", showAllCategories && "rotate-180")} />
+                  {showAllCategories ? 'Recolher' : `Ver todas (+${restCategories.length} categorias)`}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 mt-2">
+                {restCategories.map((cat, i) => (
+                  <button
+                    key={cat.name}
+                    onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-3 rounded-lg transition text-left",
+                      selectedCategory === cat.name
+                        ? "bg-primary/10 border border-primary/30"
+                        : "hover:bg-secondary/50"
+                    )}
+                  >
+                    <span className="w-5 h-5 flex items-center justify-center text-sm font-bold text-muted-foreground shrink-0">#{i + 4}</span>
+                    <span className="font-medium flex-1">{cat.name}</span>
+                    <span className="text-sm text-muted-foreground">{cat.clicks} cliques</span>
+                  </button>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </div>
       )}
 
+      {/* Active filter indicator */}
+      {selectedCategory && (
+        <div className="flex items-center gap-2 mb-4 text-sm">
+          <Filter className="w-4 h-4 text-primary" />
+          <span>Filtrando por: <strong>{selectedCategory}</strong></span>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)} className="text-xs h-6 px-2">Limpar</Button>
+        </div>
+      )}
+
+      {/* Click filter tabs */}
+      <div className="flex gap-2 mb-6">
+        {([['all', 'Todos'], ['with', 'Com cliques'], ['without', 'Sem cliques']] as const).map(([value, label]) => (
+          <Button
+            key={value}
+            variant={clickFilter === value ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setClickFilter(value)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
       {loading ? (
         <p className="text-muted-foreground">Carregando...</p>
-      ) : report.length === 0 ? (
+      ) : filteredReport.length === 0 ? (
         <div className="text-center py-20">
           <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Nenhum clique registrado neste período.</p>
+          <p className="text-muted-foreground">Nenhum produto encontrado com esses filtros.</p>
         </div>
       ) : (
         <>
-          {/* Top 5 */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-5 h-5 text-cta" />
-              <h2 className="font-display text-lg font-bold">Top 5 Mais Clicados</h2>
+          {/* Top 5 - only show when not filtering "without clicks" */}
+          {clickFilter !== 'without' && top5.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="w-5 h-5 text-cta" />
+                <h2 className="font-display text-lg font-bold">Top 5 Mais Clicados</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {top5.map((r, i) => (
+                  <div key={r.product_id} className="bg-card rounded-xl border border-border p-4 flex flex-col items-center text-center gap-2">
+                    <span className="text-xs font-bold text-cta">#{i + 1}</span>
+                    <ProductImage item={r} />
+                    <p className="text-sm font-medium leading-tight line-clamp-2">{r.title}</p>
+                    <span className="text-xs text-muted-foreground">{r.category}</span>
+                    <span className="text-lg font-bold text-cta">{r.clicks}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              {top5.map((r, i) => (
-                <div key={r.product_id} className="bg-card rounded-xl border border-border p-4 flex flex-col items-center text-center gap-2">
-                  <span className="text-xs font-bold text-cta">#{i + 1}</span>
-                  {r.image ? (
-                    <img src={r.image} alt={r.title} className="w-16 h-16 rounded-lg object-cover" />
-                  ) : (
-                    <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground text-xs">Sem img</div>
-                  )}
-                  <p className="text-sm font-medium leading-tight line-clamp-2">{r.title}</p>
-                  <span className="text-xs text-muted-foreground">{r.category}</span>
-                  <span className="text-lg font-bold text-cta">{r.clicks}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Rest */}
-          {rest.length > 0 && (
+          {restItems.length > 0 && (
             <div>
-              <h2 className="font-display text-lg font-bold mb-3">Demais Produtos Clicados</h2>
+              <h2 className="font-display text-lg font-bold mb-3">
+                {clickFilter === 'without' ? 'Produtos Sem Cliques' : 'Demais Produtos'}
+              </h2>
               <div className="bg-card rounded-xl border border-border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
@@ -225,15 +352,11 @@ const AdminReports = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {rest.map((r, i) => (
+                    {restItems.map((r, i) => (
                       <tr key={r.product_id} className="border-b border-border last:border-0">
-                        <td className="p-3 text-muted-foreground">{i + 6}</td>
+                        <td className="p-3 text-muted-foreground">{clickFilter === 'without' ? i + 1 : i + 6}</td>
                         <td className="p-3">
-                          {r.image ? (
-                            <img src={r.image} alt={r.title} className="w-10 h-10 rounded object-cover" />
-                          ) : (
-                            <div className="w-10 h-10 rounded bg-secondary flex items-center justify-center text-muted-foreground text-[10px]">Sem img</div>
-                          )}
+                          <ProductImage item={r} size="sm" />
                         </td>
                         <td className="p-3 font-medium">{r.title}</td>
                         <td className="p-3 text-muted-foreground">{r.category}</td>
