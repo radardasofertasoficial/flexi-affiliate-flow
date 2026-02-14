@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowUpDown } from 'lucide-react';
 import ProductCard from './ProductCard';
-import type { Product } from '@/data/products';
+import type { Product } from '@/types/database';
 
 interface ProductGridProps {
   products: Product[];
@@ -15,9 +15,9 @@ const ProductGrid = ({ products }: ProductGridProps) => {
   const sorted = useMemo(() => {
     const arr = [...products];
     switch (sort) {
-      case 'price-asc': return arr.sort((a, b) => a.price - b.price);
-      case 'price-desc': return arr.sort((a, b) => b.price - a.price);
-      case 'rating': return arr.sort((a, b) => b.rating - a.rating);
+      case 'price-asc': return arr.sort((a, b) => Number(a.price) - Number(b.price));
+      case 'price-desc': return arr.sort((a, b) => Number(b.price) - Number(a.price));
+      case 'rating': return arr.sort((a, b) => Number(b.rating) - Number(a.rating));
       default: return arr;
     }
   }, [products, sort]);
