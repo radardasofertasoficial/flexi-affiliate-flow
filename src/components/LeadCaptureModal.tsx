@@ -128,6 +128,7 @@ const LeadCaptureModal = ({ open, onOpenChange, source, onSuccess }: LeadCapture
                   {opt.label}
                 </button>
               ))}
+              {!selectedOption && <p className="text-xs text-destructive animate-pulse-badge text-center">⚠️ Selecione uma opção acima</p>}
             </div>
             <div className="flex flex-wrap gap-2 mt-3 justify-center">
               {tags.map((tag) => (
@@ -136,9 +137,10 @@ const LeadCaptureModal = ({ open, onOpenChange, source, onSuccess }: LeadCapture
                   {tag}
                 </button>
               ))}
+              {selectedTags.length === 0 && <p className="text-xs text-destructive animate-pulse-badge w-full text-center mt-1">⚠️ Selecione pelo menos um interesse</p>}
             </div>
             <div className="flex flex-col gap-2 mt-4">
-              <Button onClick={handleSubmit} disabled={!selectedOption || submitting} className="w-full font-bold text-base py-5" style={{ backgroundColor: '#FFC300', color: '#0D1B2A' }}>
+              <Button onClick={handleSubmit} disabled={!selectedOption || selectedTags.length === 0 || submitting} className="w-full font-bold text-base py-5" style={{ backgroundColor: '#FFC300', color: '#0D1B2A' }}>
                 <Send className="w-4 h-4 mr-2" /> {submitting ? 'Salvando...' : 'ENTRAR NO RADAR'}
               </Button>
               <button onClick={() => setStep(1)} className="text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto">← Voltar</button>
