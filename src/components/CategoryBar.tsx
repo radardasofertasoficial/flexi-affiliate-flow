@@ -1,4 +1,5 @@
-import { categories } from '@/data/products';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CategoryBarProps {
   selected: string;
@@ -6,6 +7,16 @@ interface CategoryBarProps {
 }
 
 const CategoryBar = ({ selected, onSelect }: CategoryBarProps) => {
+  const [categories, setCategories] = useState<string[]>(['Todos']);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data } = await supabase.from('categories').select('name').order('name');
+      setCategories(['Todos', ...(data?.map(c => c.name) || [])]);
+    };
+    fetchCategories();
+  }, []);
+
   return (
     <div className="sticky top-0 z-30 bg-card/80 backdrop-blur-lg border-b border-border">
       <div className="container py-3">
