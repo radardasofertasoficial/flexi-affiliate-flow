@@ -3,6 +3,7 @@ import { Star, ExternalLink, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Product } from '@/types/database';
 import LeadCaptureModal, { isLeadRegistered } from '@/components/LeadCaptureModal';
+import { useActivePlatforms } from '@/hooks/usePlatforms';
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,9 @@ interface ProductCardProps {
 const ProductCard = ({ product, index }: ProductCardProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<'offer' | 'vale_pena' | 'pergunta' | null>(null);
+  const { data: platforms = [] } = useActivePlatforms();
+
+  const platform = platforms.find(p => p.slug === product.store);
 
   const discount = product.original_price
     ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
@@ -88,13 +92,17 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
             className="w-full h-full object-contain bg-white group-hover:scale-105 transition-transform duration-500"
           />
           <div className="absolute bottom-2 left-2">
-            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-              product.store === 'shopee'
-                ? 'bg-cta/90 text-cta-foreground'
-                : 'bg-primary/90 text-primary-foreground'
-            }`}>
-              {product.store === 'shopee' ? 'Shopee' : 'Mercado Livre'}
-            </span>
+            {platform?.logo_url ? (
+              <img src={platform.logo_url} alt={platform.name} className="w-6 h-6 rounded object-contain bg-white/90 backdrop-blur-sm p-0.5" />
+            ) : (
+              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                product.store === 'shopee'
+                  ? 'bg-cta/90 text-cta-foreground'
+                  : 'bg-primary/90 text-primary-foreground'
+              }`}>
+                {platform?.name || (product.store === 'shopee' ? 'Shopee' : 'Mercado Livre')}
+              </span>
+            )}
           </div>
         </div>
 

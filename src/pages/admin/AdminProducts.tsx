@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { startOfDay, endOfDay, format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { usePlatforms, type Platform } from '@/hooks/usePlatforms';
 
 const emptyProduct: ProductInsert = {
   title: '', price: 0, affiliate_url: '', store: 'shopee', category: 'Outros',
@@ -36,6 +37,10 @@ const AdminProducts = () => {
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const { toast } = useToast();
+
+  const { data: platforms = [] } = usePlatforms();
+
+  const getPlatform = (slug: string) => platforms.find(p => p.slug === slug);
 
   const fetchProducts = async () => {
     const { data, error } = await supabase
@@ -66,7 +71,6 @@ const AdminProducts = () => {
     });
     setDialogOpen(true);
   };
-
 
   const handleSave = async () => {
     if (!form.title || !form.affiliate_url || form.price <= 0) {
@@ -132,6 +136,14 @@ const AdminProducts = () => {
     return matchCategory && matchSearch && matchStore && matchDateFrom && matchDateTo && matchPriceMin && matchPriceMax;
   });
 
+  const PlatformLogo = ({ slug, size = 24 }: { slug: string; size?: number }) => {
+    const platform = getPlatform(slug);
+    if (platform?.logo_url) {
+      return <img src={platform.logo_url} alt={platform.name} className="rounded object-contain bg-white" style={{ width: size, height: size }} title={platform.name} />;
+    }
+    return <span className="text-xs text-muted-foreground" title={slug}>{platform?.name || slug}</span>;
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -147,12 +159,10 @@ const AdminProducts = () => {
               <DialogTitle>{editing ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4 mt-4">
-              {/* Scrape section */}
               <div className="col-span-2 space-y-2">
                 <Label>Link Afiliado *</Label>
                 <Input value={form.affiliate_url} onChange={e => updateField('affiliate_url', e.target.value)} placeholder="https://..." />
               </div>
-
               <div className="col-span-2 space-y-2">
                 <Label>Título *</Label>
                 <Input value={form.title} onChange={e => updateField('title', e.target.value)} />
@@ -180,10 +190,17 @@ const AdminProducts = () => {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label>Loja</Label>
+                <Label>Plataforma</Label>
                 <select className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" value={form.store} onChange={e => updateField('store', e.target.value)}>
-                  <option value="shopee">Shopee</option>
-                  <option value="mercadolivre">Mercado Livre</option>
+                  {platforms.filter(p => p.active).map(p => (
+                    <option key={p.slug} value={p.slug}>{p.name}</option>
+                  ))}
+                  {platforms.length === 0 && (
+                    <>
+                      <option value="shopee">Shopee</option>
+                      <option value="mercadolivre">Mercado Livre</option>
+                    </>
+                  )}
                 </select>
               </div>
               <div className="space-y-2">
@@ -240,19 +257,30 @@ const AdminProducts = () => {
           ))}
         </div>
 
-        {/* Store filter */}
+        {/* Store filter - dynamic from platforms */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-          {([['Todas', 'Todas'], ['Shopee', 'shopee'], ['Mercado Livre', 'mercadolivre']] as const).map(([label, value]) => (
+          <button
+            onClick={() => setSelectedStore('Todas')}
+            className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+              selectedStore === 'Todas'
+                ? 'bg-cta text-cta-foreground shadow-cta'
+                : 'bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground'
+            }`}
+          >
+            Todas
+          </button>
+          {platforms.map(p => (
             <button
-              key={value}
-              onClick={() => setSelectedStore(value)}
-              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                selectedStore === value
+              key={p.slug}
+              onClick={() => setSelectedStore(p.slug)}
+              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+                selectedStore === p.slug
                   ? 'bg-cta text-cta-foreground shadow-cta'
                   : 'bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground'
               }`}
             >
-              {label}
+              {p.logo_url && <img src={p.logo_url} alt="" className="w-4 h-4 rounded object-contain" />}
+              {p.name}
             </button>
           ))}
         </div>
@@ -269,7 +297,6 @@ const AdminProducts = () => {
             />
           </div>
 
-          {/* Date From */}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal text-xs", !dateFrom && "text-muted-foreground")}>
@@ -282,7 +309,6 @@ const AdminProducts = () => {
             </PopoverContent>
           </Popover>
 
-          {/* Date To */}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal text-xs", !dateTo && "text-muted-foreground")}>
@@ -295,7 +321,6 @@ const AdminProducts = () => {
             </PopoverContent>
           </Popover>
 
-          {/* Price range */}
           <div className="flex items-center gap-1">
             <span className="text-xs text-muted-foreground">R$</span>
             <Input type="number" placeholder="Min" value={priceMin} onChange={e => setPriceMin(e.target.value)} className="w-[80px] h-9 text-xs" />
@@ -329,6 +354,7 @@ const AdminProducts = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-secondary/50">
+                <th className="text-center p-3 font-medium text-muted-foreground w-[60px]">Plataforma</th>
                 <th className="text-left p-3 font-medium text-muted-foreground">Produto</th>
                 <th className="text-left p-3 font-medium text-muted-foreground">Categoria</th>
                 <th className="text-right p-3 font-medium text-muted-foreground">Preço</th>
@@ -339,13 +365,15 @@ const AdminProducts = () => {
             <tbody>
               {filteredProducts.map(p => (
                 <tr key={p.id} className="border-b border-border last:border-0 hover:bg-secondary/30">
+                  <td className="p-3 text-center">
+                    <div className="flex justify-center">
+                      <PlatformLogo slug={p.store} />
+                    </div>
+                  </td>
                   <td className="p-3">
                     <div className="flex items-center gap-3">
                       {p.image && <img src={p.image} alt="" className="w-10 h-10 rounded object-cover" />}
-                      <div>
-                        <p className="font-medium text-foreground line-clamp-1">{p.title}</p>
-                        <p className="text-xs text-muted-foreground">{p.store}</p>
-                      </div>
+                      <p className="font-medium text-foreground line-clamp-1">{p.title}</p>
                     </div>
                   </td>
                   <td className="p-3 text-muted-foreground">{p.category}</td>
