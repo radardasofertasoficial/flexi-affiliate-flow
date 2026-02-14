@@ -1,26 +1,32 @@
 
+## Corrigir fluxo do modal: redirecionar automaticamente apos cadastro
 
-## Adicionar Toggle de Visibilidade nas Opções de Interesse
+### Problema
+Quando o usuario clica em "ENTRAR NO RADAR" no modal, a funcao `handleSubmit` chama `onOpenChange(false)` primeiro. Isso dispara o callback do ProductCard que limpa o `pendingAction` para `null`. Quando `onSuccess` e chamado logo depois, o `pendingAction` ja esta vazio e nenhuma acao acontece -- o usuario fica preso sem ser redirecionado.
 
-### Objetivo
-Adicionar um botão de ativar/desativar (switch) em cada opção de interesse na aba de Configurações, permitindo esconder ou mostrar opções sem precisar apagá-las.
+### Solucao
+Inverter a ordem no `handleSubmit`: chamar `onSuccess` **antes** de fechar o modal com `onOpenChange(false)`. Assim a acao pendente (abrir a oferta, enviar WhatsApp) executa primeiro enquanto o `pendingAction` ainda existe, e so depois o modal fecha.
 
-### Mudanças
+### Mudancas
 
-**1. Atualizar a interface `LeadOption`** (`src/hooks/useLeadModalConfig.ts`)
-- Adicionar campo `visible: boolean` (padrão `true`) ao tipo `LeadOption`.
-- Atualizar os valores padrão (DEFAULTS) para incluir `visible: true` em cada opção.
+**Arquivo: `src/components/LeadCaptureModal.tsx`** (linhas 76-80)
 
-**2. Atualizar o Admin Settings** (`src/pages/admin/AdminSettings.tsx`)
-- Adicionar um componente Switch ao lado de cada opção de interesse.
-- Opções desativadas ficarao com visual mais apagado (opacidade reduzida) para indicar que estao ocultas.
+Alterar a ordem de:
+```
+localStorage.setItem(LEAD_REGISTERED_KEY, 'true');
+setSubmitting(false);
+onOpenChange(false);
+resetState();
+if (onSuccess) { onSuccess(); } else { ... }
+```
 
-**3. Filtrar opções no Modal** (`src/components/LeadCaptureModal.tsx`)
-- No Step 2, filtrar as opções para mostrar apenas as que possuem `visible: true` (ou `visible` indefinido, para compatibilidade com dados antigos).
+Para:
+```
+localStorage.setItem(LEAD_REGISTERED_KEY, 'true');
+setSubmitting(false);
+if (onSuccess) { onSuccess(); } else { window.open(whatsappLink, '_blank', 'noopener,noreferrer'); }
+onOpenChange(false);
+resetState();
+```
 
-### Detalhes Tecnicos
-
-- O campo `visible` sera armazenado dentro do JSONB `options` na tabela `lead_modal_config`, portanto nao precisa de migração SQL.
-- Opções existentes sem o campo `visible` serao tratadas como visíveis por padrão.
-- O Switch usara o componente `@radix-ui/react-switch` ja disponível no projeto.
-
+Isso garante que a acao de redirecionamento executa antes do modal fechar e antes do `pendingAction` ser limpo.
