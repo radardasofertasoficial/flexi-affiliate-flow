@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Settings, Plus, Trash2, Save, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 const AdminSettings = () => {
@@ -57,7 +58,10 @@ const AdminSettings = () => {
     setOptions(prev => prev.map((o, idx) => idx === i ? { ...o, [field]: value } : o));
   };
 
-  const addOption = () => setOptions(prev => [...prev, { label: '', type: '' }]);
+  const addOption = () => setOptions(prev => [...prev, { label: '', type: '', visible: true }]);
+  const toggleOptionVisibility = (i: number) => {
+    setOptions(prev => prev.map((o, idx) => idx === i ? { ...o, visible: o.visible === false ? true : false } : o));
+  };
   const removeOption = (i: number) => setOptions(prev => prev.filter((_, idx) => idx !== i));
 
   const addTag = () => {
@@ -146,7 +150,8 @@ const AdminSettings = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           {options.map((opt, i) => (
-            <div key={i} className="flex gap-2 items-start">
+            <div key={i} className={`flex gap-2 items-start transition-opacity ${opt.visible === false ? 'opacity-40' : ''}`}>
+              <Switch checked={opt.visible !== false} onCheckedChange={() => toggleOptionVisibility(i)} className="mt-2" />
               <div className="flex-1 space-y-1">
                 <Input value={opt.label} onChange={e => updateOption(i, 'label', e.target.value)} placeholder="Texto (ex: 📋 Lista das 10 melhores)" />
                 <Input value={opt.type} onChange={e => updateOption(i, 'type', e.target.value)} placeholder="Tipo (ex: top10_ofertas)" className="text-xs" />

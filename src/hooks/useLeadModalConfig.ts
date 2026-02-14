@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface LeadOption {
   label: string;
   type: string;
+  visible?: boolean;
 }
 
 export interface LeadModalConfig {
@@ -25,10 +26,10 @@ const DEFAULTS: Omit<LeadModalConfig, 'id' | 'updated_at'> = {
   step2_title: 'O que te interessa?',
   step2_description: 'Escolha uma opção e selecione categorias se quiser.',
   options: [
-    { label: '📋 Lista das 10 melhores ofertas do mês', type: 'top10_ofertas' },
-    { label: '🔥 Radar das Ofertas', type: 'radar_ofertas' },
-    { label: '🎟️ Cupom exclusivo', type: 'cupom_exclusivo' },
-    { label: '⚡ Alerta de promoção relâmpago', type: 'alerta_promo' },
+    { label: '📋 Lista das 10 melhores ofertas do mês', type: 'top10_ofertas', visible: true },
+    { label: '🔥 Radar das Ofertas', type: 'radar_ofertas', visible: true },
+    { label: '🎟️ Cupom exclusivo', type: 'cupom_exclusivo', visible: true },
+    { label: '⚡ Alerta de promoção relâmpago', type: 'alerta_promo', visible: true },
   ],
   tags: ['Roupas', 'Eletrônicos', 'Ferramentas', 'Casa e Decoração', 'Beleza e Saúde', 'Esportes', 'Outros'],
   whatsapp_group_link: 'https://chat.whatsapp.com/GRUPO_PLACEHOLDER',

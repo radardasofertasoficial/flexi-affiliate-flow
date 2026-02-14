@@ -40,7 +40,7 @@ const LeadCaptureModal = ({ open, onOpenChange, source, onSuccess }: LeadCapture
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const options = config?.options ?? [];
+  const options = (config?.options ?? []).filter(opt => opt.visible !== false);
   const tags = config?.tags ?? [];
   const whatsappLink = config?.whatsapp_group_link ?? '';
 
