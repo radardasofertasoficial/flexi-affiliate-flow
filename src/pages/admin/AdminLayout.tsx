@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet, useNavigate, NavLink } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Package, BarChart3, LogOut, Flame, Home } from 'lucide-react';
+import { Package, BarChart3, LogOut, Flame, Home, Tags } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const AdminLayout = () => {
@@ -42,6 +42,9 @@ const AdminLayout = () => {
         <nav className="flex-1 p-3 space-y-1">
           <NavLink to="/admin" end className={linkClass}>
             <Package className="w-4 h-4" /> Produtos
+          </NavLink>
+          <NavLink to="/admin/categories" className={linkClass}>
+            <Tags className="w-4 h-4" /> Categorias
           </NavLink>
           <NavLink to="/admin/reports" className={linkClass}>
             <BarChart3 className="w-4 h-4" /> Relatórios

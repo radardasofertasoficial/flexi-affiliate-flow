@@ -5,25 +5,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Star, Eye, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Loader2, Link } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 
 const emptyProduct: ProductInsert = {
-  title: '', price: 0, affiliate_url: '', store: 'shopee', category: 'Eletrônicos',
+  title: '', price: 0, affiliate_url: '', store: 'shopee', category: 'Outros',
   description: '', original_price: null, image: '', rating: 0, reviews: 0,
   badge: '', priority: 0, featured: false, active: true,
 };
 
-const categories = ['Eletrônicos', 'Casa & Decoração', 'Moda', 'Beleza', 'Esportes', 'Brinquedos', 'Automotivo', 'Outros'];
-
 const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductInsert>(emptyProduct);
+  const [scraping, setScraping] = useState(false);
   const { toast } = useToast();
 
   const fetchProducts = async () => {
@@ -32,15 +32,17 @@ const AdminProducts = () => {
       .select('*')
       .order('priority', { ascending: false })
       .order('created_at', { ascending: false });
-    if (error) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    } else {
-      setProducts((data as unknown as Product[]) || []);
-    }
+    if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    else setProducts((data as unknown as Product[]) || []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  const fetchCategories = async () => {
+    const { data } = await supabase.from('categories').select('name').order('name');
+    if (data) setCategories(data.map(c => c.name));
+  };
+
+  useEffect(() => { fetchProducts(); fetchCategories(); }, []);
 
   const openNew = () => { setEditing(null); setForm(emptyProduct); setDialogOpen(true); };
   const openEdit = (p: Product) => {
@@ -52,6 +54,36 @@ const AdminProducts = () => {
       priority: p.priority, featured: p.featured, active: p.active,
     });
     setDialogOpen(true);
+  };
+
+  const handleScrape = async () => {
+    if (!form.affiliate_url) {
+      toast({ title: 'Cole o link do produto primeiro', variant: 'destructive' });
+      return;
+    }
+    setScraping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('firecrawl-scrape', {
+        body: { url: form.affiliate_url },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        setForm(f => ({
+          ...f,
+          title: data.title || f.title,
+          description: data.description || f.description,
+          image: data.image || f.image,
+          price: data.price || f.price,
+        }));
+        toast({ title: 'Dados extraídos com sucesso!' });
+      } else {
+        toast({ title: 'Não foi possível extrair dados', description: data?.error, variant: 'destructive' });
+      }
+    } catch (err: any) {
+      toast({ title: 'Erro no scraping', description: err.message, variant: 'destructive' });
+    } finally {
+      setScraping(false);
+    }
   };
 
   const handleSave = async () => {
@@ -107,6 +139,18 @@ const AdminProducts = () => {
               <DialogTitle>{editing ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4 mt-4">
+              {/* Scrape section */}
+              <div className="col-span-2 space-y-2">
+                <Label>Link Afiliado *</Label>
+                <div className="flex gap-2">
+                  <Input value={form.affiliate_url} onChange={e => updateField('affiliate_url', e.target.value)} placeholder="https://..." className="flex-1" />
+                  <Button type="button" variant="outline" onClick={handleScrape} disabled={scraping}>
+                    {scraping ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Link className="w-4 h-4 mr-2" />}
+                    {scraping ? 'Extraindo...' : 'Extrair dados'}
+                  </Button>
+                </div>
+              </div>
+
               <div className="col-span-2 space-y-2">
                 <Label>Título *</Label>
                 <Input value={form.title} onChange={e => updateField('title', e.target.value)} />
@@ -126,10 +170,6 @@ const AdminProducts = () => {
               <div className="space-y-2">
                 <Label>URL da Imagem</Label>
                 <Input value={form.image || ''} onChange={e => updateField('image', e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Link Afiliado *</Label>
-                <Input value={form.affiliate_url} onChange={e => updateField('affiliate_url', e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Categoria</Label>
