@@ -17,6 +17,8 @@ export interface Product {
   active: boolean;
   sales_count: number;
   show_sales: boolean;
+  views_count: number;
+  show_views: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -46,4 +48,6 @@ export interface ProductInsert {
   active?: boolean;
   sales_count?: number;
   show_sales?: boolean;
+  views_count?: number;
+  show_views?: boolean;
 }

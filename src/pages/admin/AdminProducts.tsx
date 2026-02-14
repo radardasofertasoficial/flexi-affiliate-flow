@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Search, CalendarIcon, X, Loader2, Link as LinkIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Search, CalendarIcon, X, Loader2, Link as LinkIcon, Upload } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -24,6 +24,7 @@ const emptyProduct: ProductInsert = {
   badge: '', featured: false, active: true,
   sales_count: 0, show_sales: false,
   rating: 0, reviews: 0,
+  views_count: 0, show_views: false,
 };
 
 const AdminProducts = () => {
@@ -35,6 +36,7 @@ const AdminProducts = () => {
   const [form, setForm] = useState<ProductInsert>(emptyProduct);
   const [scrapeUrl, setScrapeUrl] = useState('');
   const [scraping, setScraping] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStore, setSelectedStore] = useState('Todas');
@@ -85,6 +87,7 @@ const AdminProducts = () => {
       featured: p.featured, active: p.active,
       sales_count: p.sales_count ?? 0, show_sales: p.show_sales ?? false,
       rating: p.rating ?? 0, reviews: p.reviews ?? 0,
+      views_count: (p as any).views_count ?? 0, show_views: (p as any).show_views ?? false,
     });
     setDialogOpen(true);
   };
@@ -159,6 +162,28 @@ const AdminProducts = () => {
   };
 
   const updateField = (key: keyof ProductInsert, value: any) => setForm(f => ({ ...f, [key]: value }));
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!['jpg', 'jpeg', 'png'].includes(ext || '')) {
+      toast({ title: 'Formato inválido', description: 'Use JPG, JPEG ou PNG.', variant: 'destructive' });
+      return;
+    }
+    setUploading(true);
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from('product-images').upload(fileName, file);
+    if (error) {
+      toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
+      setUploading(false);
+      return;
+    }
+    const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+    updateField('image', urlData.publicUrl);
+    toast({ title: 'Imagem enviada!' });
+    setUploading(false);
+  };
 
   const hasActiveFilters = selectedStore !== 'Todas' || dateFrom || dateTo || priceMin || priceMax;
 
@@ -243,9 +268,19 @@ const AdminProducts = () => {
                 <Label>Preço Original</Label>
                 <Input type="number" step="0.01" value={form.original_price || ''} onChange={e => updateField('original_price', parseFloat(e.target.value) || null)} />
               </div>
-              <div className="space-y-2">
-                <Label>URL da Imagem</Label>
-                <Input value={form.image || ''} onChange={e => updateField('image', e.target.value)} />
+              <div className="col-span-2 space-y-2">
+                <Label>Imagem</Label>
+                <div className="flex gap-2">
+                  <Input value={form.image || ''} onChange={e => updateField('image', e.target.value)} placeholder="URL da imagem ou envie um arquivo" className="flex-1" />
+                  <label className="shrink-0">
+                    <input type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                    <Button type="button" variant="outline" className="pointer-events-none" disabled={uploading} asChild={false}>
+                      {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Upload className="w-4 h-4 mr-1" />}
+                      Enviar
+                    </Button>
+                  </label>
+                </div>
+                {form.image && <img src={form.image} alt="Preview" className="w-16 h-16 rounded object-cover mt-1" />}
               </div>
               <div className="space-y-2">
                 <Label>Categoria</Label>
@@ -294,6 +329,17 @@ const AdminProducts = () => {
                 <div className="flex items-center gap-2">
                   <Switch checked={form.show_sales ?? false} onCheckedChange={v => updateField('show_sales', v)} />
                   <Label className="mb-0">Mostrar vendidos</Label>
+                </div>
+              </div>
+              {/* Views count */}
+              <div className="space-y-2">
+                <Label>Visitas</Label>
+                <Input type="number" min="0" value={(form as any).views_count ?? 0} onChange={e => updateField('views_count' as any, parseInt(e.target.value) || 0)} />
+              </div>
+              <div className="space-y-2 flex items-end gap-3 pb-0.5">
+                <div className="flex items-center gap-2">
+                  <Switch checked={(form as any).show_views ?? false} onCheckedChange={v => updateField('show_views' as any, v)} />
+                  <Label className="mb-0">Mostrar visitas</Label>
                 </div>
               </div>
               <div className="col-span-2 flex items-center gap-6">
