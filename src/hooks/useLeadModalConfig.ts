@@ -7,6 +7,11 @@ export interface LeadOption {
   visible?: boolean;
 }
 
+export interface BadgeOption {
+  text: string;
+  active: boolean;
+}
+
 export interface LeadModalConfig {
   id: string;
   step1_title: string;
@@ -15,6 +20,7 @@ export interface LeadModalConfig {
   step2_description: string;
   options: LeadOption[];
   tags: string[];
+  badges: BadgeOption[];
   whatsapp_group_link: string;
   whatsapp_number: string;
   updated_at: string;
@@ -32,6 +38,7 @@ const DEFAULTS: Omit<LeadModalConfig, 'id' | 'updated_at'> = {
     { label: '⚡ Alerta de promoção relâmpago', type: 'alerta_promo', visible: true },
   ],
   tags: ['Roupas', 'Eletrônicos', 'Ferramentas', 'Casa e Decoração', 'Beleza e Saúde', 'Esportes', 'Outros'],
+  badges: [],
   whatsapp_group_link: 'https://chat.whatsapp.com/GRUPO_PLACEHOLDER',
   whatsapp_number: '5515981184423',
 };

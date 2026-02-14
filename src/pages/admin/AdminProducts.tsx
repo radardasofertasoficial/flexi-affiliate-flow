@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useLeadModalConfig } from '@/hooks/useLeadModalConfig';
 import type { Product, ProductInsert } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,8 +19,8 @@ import { usePlatforms, type Platform } from '@/hooks/usePlatforms';
 
 const emptyProduct: ProductInsert = {
   title: '', price: 0, affiliate_url: '', store: 'shopee', category: 'Outros',
-  description: '', original_price: null, image: '', rating: 0, reviews: 0,
-  badge: '', priority: 0, featured: false, active: true,
+  description: '', original_price: null, image: '',
+  badge: '', featured: false, active: true,
 };
 
 const AdminProducts = () => {
@@ -39,6 +40,8 @@ const AdminProducts = () => {
   const { toast } = useToast();
 
   const { data: platforms = [] } = usePlatforms();
+  const { data: config } = useLeadModalConfig();
+  const activeBadges = (config?.badges || []).filter(b => b.active);
 
   const getPlatform = (slug: string) => platforms.find(p => p.slug === slug);
 
@@ -66,8 +69,8 @@ const AdminProducts = () => {
     setForm({
       title: p.title, price: p.price, affiliate_url: p.affiliate_url, store: p.store,
       category: p.category, description: p.description, original_price: p.original_price,
-      image: p.image, rating: p.rating, reviews: p.reviews, badge: p.badge,
-      priority: p.priority, featured: p.featured, active: p.active,
+      image: p.image, badge: p.badge,
+      featured: p.featured, active: p.active,
     });
     setDialogOpen(true);
   };
@@ -204,20 +207,13 @@ const AdminProducts = () => {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label>Avaliação</Label>
-                <Input type="number" step="0.1" min="0" max="5" value={form.rating} onChange={e => updateField('rating', parseFloat(e.target.value) || 0)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Nº Reviews</Label>
-                <Input type="number" value={form.reviews} onChange={e => updateField('reviews', parseInt(e.target.value) || 0)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Badge (emoji + texto)</Label>
-                <Input value={form.badge || ''} onChange={e => updateField('badge', e.target.value)} placeholder="🔥 Mais Vendido" />
-              </div>
-              <div className="space-y-2">
-                <Label>Prioridade</Label>
-                <Input type="number" value={form.priority} onChange={e => updateField('priority', parseInt(e.target.value) || 0)} />
+                <Label>Badge</Label>
+                <select className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" value={form.badge || ''} onChange={e => updateField('badge', e.target.value || null)}>
+                  <option value="">Sem badge</option>
+                  {activeBadges.map(b => (
+                    <option key={b.text} value={b.text}>{b.text}</option>
+                  ))}
+                </select>
               </div>
               <div className="col-span-2 flex items-center gap-6">
                 <label className="flex items-center gap-2 text-sm">
