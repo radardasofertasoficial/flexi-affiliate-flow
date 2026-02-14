@@ -23,6 +23,7 @@ const emptyProduct: ProductInsert = {
   description: '', original_price: null, image: '',
   badge: '', featured: false, active: true,
   sales_count: 0, show_sales: false,
+  rating: 0, reviews: 0,
 };
 
 const AdminProducts = () => {
@@ -67,7 +68,13 @@ const AdminProducts = () => {
 
   useEffect(() => { fetchProducts(); fetchCategories(); }, []);
 
-  const openNew = () => { setEditing(null); setForm(emptyProduct); setScrapeUrl(''); setDialogOpen(true); };
+  const openNew = () => {
+    setEditing(null);
+    const defaultBadge = activeBadges.length > 0 ? activeBadges[0].text : '';
+    setForm({ ...emptyProduct, badge: defaultBadge });
+    setScrapeUrl('');
+    setDialogOpen(true);
+  };
   const openEdit = (p: Product) => {
     setEditing(p);
     setScrapeUrl('');
@@ -77,6 +84,7 @@ const AdminProducts = () => {
       image: p.image, badge: p.badge,
       featured: p.featured, active: p.active,
       sales_count: p.sales_count ?? 0, show_sales: p.show_sales ?? false,
+      rating: p.rating ?? 0, reviews: p.reviews ?? 0,
     });
     setDialogOpen(true);
   };
@@ -261,12 +269,21 @@ const AdminProducts = () => {
               </div>
               <div className="space-y-2">
                 <Label>Badge</Label>
-                <select className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" value={form.badge || ''} onChange={e => updateField('badge', e.target.value || null)}>
-                  <option value="">Sem badge</option>
+                <select className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" value={form.badge || ''} onChange={e => updateField('badge', e.target.value)}>
+
                   {activeBadges.map(b => (
                     <option key={b.text} value={b.text}>{b.text}</option>
                   ))}
                 </select>
+              </div>
+              {/* Rating & Reviews */}
+              <div className="space-y-2">
+                <Label>Nota (0-5)</Label>
+                <Input type="number" step="0.1" min="0" max="5" value={form.rating ?? 0} onChange={e => updateField('rating', parseFloat(e.target.value) || 0)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Avaliações</Label>
+                <Input type="number" min="0" value={form.reviews ?? 0} onChange={e => updateField('reviews', parseInt(e.target.value) || 0)} />
               </div>
               {/* Sales count */}
               <div className="space-y-2">
