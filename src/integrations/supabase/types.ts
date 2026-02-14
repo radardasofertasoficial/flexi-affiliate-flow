@@ -191,6 +191,8 @@ export type Database = {
           priority: number | null
           rating: number | null
           reviews: number | null
+          sales_count: number | null
+          show_sales: boolean | null
           store: string
           title: string
           updated_at: string
@@ -210,6 +212,8 @@ export type Database = {
           priority?: number | null
           rating?: number | null
           reviews?: number | null
+          sales_count?: number | null
+          show_sales?: boolean | null
           store?: string
           title: string
           updated_at?: string
@@ -229,6 +233,8 @@ export type Database = {
           priority?: number | null
           rating?: number | null
           reviews?: number | null
+          sales_count?: number | null
+          show_sales?: boolean | null
           store?: string
           title?: string
           updated_at?: string
