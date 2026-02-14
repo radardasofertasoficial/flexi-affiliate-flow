@@ -1,12 +1,12 @@
-import { ShoppingBag, Flame, LogIn } from 'lucide-react';
+import { ShoppingBag, LogIn } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 const SiteHeader = () => {
   return (
     <header className="bg-primary text-primary-foreground">
       <div className="container flex items-center justify-between py-3">
-        <a href="/" className="flex items-center gap-2 font-display font-bold text-xl">
-          <Flame className="w-6 h-6 text-cta" />
-          <span>Radar das Ofertas</span>
+        <a href="/" className="flex items-center gap-2">
+          <img src={logo} alt="Radar das Ofertas" className="h-10 w-auto" />
         </a>
         <div className="flex items-center gap-4 text-sm">
           <a href="#" className="hidden sm:block text-primary-foreground/70 hover:text-primary-foreground transition-colors">
