@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import LeadCaptureModal, { isLeadRegistered } from '@/components/LeadCaptureModal';
-
-const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/GRUPO_PLACEHOLDER';
+import { useLeadModalConfig } from '@/hooks/useLeadModalConfig';
 
 const WhatsAppFloat = () => {
   const [modalOpen, setModalOpen] = useState(false);
+  const { data: config } = useLeadModalConfig();
+  const whatsappLink = config?.whatsapp_group_link ?? '#';
 
   const handleClick = () => {
     if (isLeadRegistered()) {
-      window.open(WHATSAPP_GROUP_LINK, '_blank', 'noopener,noreferrer');
+      window.open(whatsappLink, '_blank', 'noopener,noreferrer');
     } else {
       setModalOpen(true);
     }
