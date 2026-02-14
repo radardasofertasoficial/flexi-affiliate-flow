@@ -121,7 +121,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
             {product.description}
           </p>
 
-          <div className="flex items-center gap-1 mb-3">
+          <div className="flex items-center gap-1 mb-3 flex-wrap">
             <div className="flex">
               {[...Array(5)].map((_, i) => (
                 <Star
@@ -137,6 +137,11 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
             <span className="text-xs text-muted-foreground ml-1">
               {product.rating} ({Number(product.reviews).toLocaleString('pt-BR')})
             </span>
+            {product.show_sales && product.sales_count > 0 && (
+              <span className="text-xs text-cta font-semibold ml-1">
+                • {Number(product.sales_count).toLocaleString('pt-BR')} vendidos
+              </span>
+            )}
           </div>
 
           <div className="mt-auto">

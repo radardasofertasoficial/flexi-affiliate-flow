@@ -15,6 +15,8 @@ export interface Product {
   priority: number;
   featured: boolean;
   active: boolean;
+  sales_count: number;
+  show_sales: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -42,4 +44,6 @@ export interface ProductInsert {
   priority?: number;
   featured?: boolean;
   active?: boolean;
+  sales_count?: number;
+  show_sales?: boolean;
 }

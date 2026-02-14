@@ -5,8 +5,9 @@ import type { Product, ProductInsert } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Search, CalendarIcon, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Search, CalendarIcon, X, Loader2, Link as LinkIcon } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -21,6 +22,7 @@ const emptyProduct: ProductInsert = {
   title: '', price: 0, affiliate_url: '', store: 'shopee', category: 'Outros',
   description: '', original_price: null, image: '',
   badge: '', featured: false, active: true,
+  sales_count: 0, show_sales: false,
 };
 
 const AdminProducts = () => {
@@ -30,6 +32,8 @@ const AdminProducts = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductInsert>(emptyProduct);
+  const [scrapeUrl, setScrapeUrl] = useState('');
+  const [scraping, setScraping] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStore, setSelectedStore] = useState('Todas');
@@ -63,16 +67,46 @@ const AdminProducts = () => {
 
   useEffect(() => { fetchProducts(); fetchCategories(); }, []);
 
-  const openNew = () => { setEditing(null); setForm(emptyProduct); setDialogOpen(true); };
+  const openNew = () => { setEditing(null); setForm(emptyProduct); setScrapeUrl(''); setDialogOpen(true); };
   const openEdit = (p: Product) => {
     setEditing(p);
+    setScrapeUrl('');
     setForm({
       title: p.title, price: p.price, affiliate_url: p.affiliate_url, store: p.store,
       category: p.category, description: p.description, original_price: p.original_price,
       image: p.image, badge: p.badge,
       featured: p.featured, active: p.active,
+      sales_count: p.sales_count ?? 0, show_sales: p.show_sales ?? false,
     });
     setDialogOpen(true);
+  };
+
+  const handleScrape = async () => {
+    if (!scrapeUrl.trim()) return;
+    setScraping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('firecrawl-scrape', {
+        body: { url: scrapeUrl.trim() },
+      });
+      if (error || !data?.success) {
+        toast({ title: 'Erro ao buscar', description: data?.error || error?.message || 'Falha', variant: 'destructive' });
+        return;
+      }
+      setForm(f => ({
+        ...f,
+        title: data.title || f.title,
+        description: data.description || f.description,
+        image: data.image || f.image,
+        price: data.price ?? f.price,
+        original_price: data.original_price ?? f.original_price,
+        sales_count: data.sales_count ?? f.sales_count,
+      }));
+      toast({ title: 'Dados preenchidos!', description: 'Revise e ajuste antes de salvar.' });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setScraping(false);
+    }
   };
 
   const handleSave = async () => {
@@ -162,6 +196,25 @@ const AdminProducts = () => {
               <DialogTitle>{editing ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4 mt-4">
+              {/* Scrape section */}
+              <div className="col-span-2 space-y-2 p-3 bg-secondary/50 rounded-lg border border-border">
+                <Label className="flex items-center gap-1.5">
+                  <LinkIcon className="w-4 h-4" /> Link do Produto (plataforma)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={scrapeUrl}
+                    onChange={e => setScrapeUrl(e.target.value)}
+                    placeholder="https://shopee.com.br/produto-xyz..."
+                  />
+                  <Button type="button" onClick={handleScrape} disabled={scraping || !scrapeUrl.trim()} variant="outline" className="shrink-0">
+                    {scraping ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Search className="w-4 h-4 mr-1" />}
+                    Buscar
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Cole o link da página do produto para preencher automaticamente os campos abaixo.</p>
+              </div>
+
               <div className="col-span-2 space-y-2">
                 <Label>Link Afiliado *</Label>
                 <Input value={form.affiliate_url} onChange={e => updateField('affiliate_url', e.target.value)} placeholder="https://..." />
@@ -214,6 +267,17 @@ const AdminProducts = () => {
                     <option key={b.text} value={b.text}>{b.text}</option>
                   ))}
                 </select>
+              </div>
+              {/* Sales count */}
+              <div className="space-y-2">
+                <Label>Qtd. Vendidos</Label>
+                <Input type="number" value={form.sales_count ?? 0} onChange={e => updateField('sales_count', parseInt(e.target.value) || 0)} />
+              </div>
+              <div className="space-y-2 flex items-end gap-3 pb-0.5">
+                <div className="flex items-center gap-2">
+                  <Switch checked={form.show_sales ?? false} onCheckedChange={v => updateField('show_sales', v)} />
+                  <Label className="mb-0">Mostrar vendidos</Label>
+                </div>
               </div>
               <div className="col-span-2 flex items-center gap-6">
                 <label className="flex items-center gap-2 text-sm">

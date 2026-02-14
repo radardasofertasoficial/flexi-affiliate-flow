@@ -3,6 +3,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+function extractSalesCount(markdown: string): number | null {
+  // "1.234 vendidos", "1,2 mil vendidos", "10mil vendidos", "500+ vendidos"
+  const patterns = [
+    /(\d+(?:[.,]\d+)?)\s*mil\s+vendidos/i,
+    /(\d+(?:\.\d{3})*(?:,\d+)?)\s*\+?\s*vendidos/i,
+    /sold\s+(\d+(?:[.,]\d+)?)\s*k?/i,
+  ];
+  for (const pat of patterns) {
+    const m = markdown.match(pat);
+    if (m) {
+      let raw = m[1];
+      if (/mil/i.test(markdown.substring(m.index!, m.index! + m[0].length))) {
+        return Math.round(parseFloat(raw.replace(',', '.')) * 1000);
+      }
+      return parseInt(raw.replace(/\./g, '').replace(',', '.'), 10);
+    }
+  }
+  return null;
+}
+
+function extractPrices(markdown: string): { price: number | null; originalPrice: number | null } {
+  // Find all R$ prices
+  const allPrices: number[] = [];
+  const priceRegex = /R\$\s*([\d.,]+)/g;
+  let match;
+  while ((match = priceRegex.exec(markdown)) !== null) {
+    const val = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
+    if (!isNaN(val) && val > 0) allPrices.push(val);
+  }
+
+  if (allPrices.length === 0) return { price: null, originalPrice: null };
+  if (allPrices.length === 1) return { price: allPrices[0], originalPrice: null };
+
+  // Assume smallest is current price, largest is original
+  const sorted = [...new Set(allPrices)].sort((a, b) => a - b);
+  return { price: sorted[0], originalPrice: sorted.length > 1 ? sorted[sorted.length - 1] : null };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -56,22 +94,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Extract useful product info from metadata
     const metadata = data.data?.metadata || data.metadata || {};
+    const markdown = data.data?.markdown || data.markdown || '';
+
+    const prices = extractPrices(markdown);
+    const salesCount = extractSalesCount(markdown);
+
     const result = {
       success: true,
       title: metadata.title || metadata.ogTitle || '',
       description: metadata.description || metadata.ogDescription || '',
       image: metadata.ogImage || metadata.image || '',
-      price: null as number | null,
+      price: prices.price,
+      original_price: prices.originalPrice,
+      sales_count: salesCount,
     };
 
-    // Try to extract price from markdown
-    const markdown = data.data?.markdown || data.markdown || '';
-    const priceMatch = markdown.match(/R\$\s*([\d.,]+)/);
-    if (priceMatch) {
-      result.price = parseFloat(priceMatch[1].replace('.', '').replace(',', '.'));
-    }
+    console.log('Extracted:', { price: result.price, original_price: result.original_price, sales_count: result.sales_count });
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
