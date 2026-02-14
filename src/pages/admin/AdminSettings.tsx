@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useLeadModalConfig, useUpdateLeadModalConfig, type LeadOption } from '@/hooks/useLeadModalConfig';
+import { useLeadModalConfig, useUpdateLeadModalConfig, type LeadOption, type BadgeOption } from '@/hooks/useLeadModalConfig';
 import { usePlatforms, useUpsertPlatform, useDeletePlatform, type Platform } from '@/hooks/usePlatforms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings, Plus, Trash2, Save, Loader2, Pencil, Store } from 'lucide-react';
+import { Settings, Plus, Trash2, Save, Loader2, Pencil, Store, Tag } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
@@ -25,6 +25,10 @@ const AdminSettings = () => {
   const [options, setOptions] = useState<LeadOption[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
+  const [badges, setBadges] = useState<BadgeOption[]>([]);
+  const [newBadge, setNewBadge] = useState('');
+  const [editingBadgeIdx, setEditingBadgeIdx] = useState<number | null>(null);
+  const [editingBadgeText, setEditingBadgeText] = useState('');
   const [whatsappLink, setWhatsappLink] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
 
@@ -44,6 +48,7 @@ const AdminSettings = () => {
       setStep2Desc(config.step2_description);
       setOptions(config.options);
       setTags(config.tags);
+      setBadges(config.badges || []);
       setWhatsappLink(config.whatsapp_group_link);
       setWhatsappNumber(config.whatsapp_number);
     }
@@ -58,6 +63,7 @@ const AdminSettings = () => {
         step2_description: step2Desc,
         options,
         tags,
+        badges,
         whatsapp_group_link: whatsappLink,
         whatsapp_number: whatsappNumber,
       });
@@ -85,6 +91,23 @@ const AdminSettings = () => {
     }
   };
   const removeTag = (tag: string) => setTags(prev => prev.filter(t => t !== tag));
+
+  const addBadge = () => {
+    const b = newBadge.trim();
+    if (b && !badges.some(x => x.text === b)) {
+      setBadges(prev => [...prev, { text: b, active: true }]);
+      setNewBadge('');
+    }
+  };
+  const removeBadge = (i: number) => setBadges(prev => prev.filter((_, idx) => idx !== i));
+  const toggleBadgeActive = (i: number) => setBadges(prev => prev.map((b, idx) => idx === i ? { ...b, active: !b.active } : b));
+  const startEditBadge = (i: number) => { setEditingBadgeIdx(i); setEditingBadgeText(badges[i].text); };
+  const saveEditBadge = () => {
+    if (editingBadgeIdx !== null && editingBadgeText.trim()) {
+      setBadges(prev => prev.map((b, idx) => idx === editingBadgeIdx ? { ...b, text: editingBadgeText.trim() } : b));
+      setEditingBadgeIdx(null);
+    }
+  };
 
   // Platform helpers
   const generateSlug = (name: string) => name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '').trim();
@@ -319,6 +342,39 @@ const AdminSettings = () => {
           <div className="flex gap-2">
             <Input value={newTag} onChange={e => setNewTag(e.target.value)} placeholder="Nova tag..." onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())} />
             <Button size="sm" variant="outline" onClick={addTag}><Plus className="w-3 h-3 mr-1" /> Add</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Badges */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Tag className="w-4 h-4 text-cta" />
+            <CardTitle className="text-base">Badges de Produto</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {badges.map((badge, i) => (
+            <div key={i} className={`flex items-center gap-2 p-2 rounded-lg border border-border transition-opacity ${!badge.active ? 'opacity-40' : ''}`}>
+              <Switch checked={badge.active} onCheckedChange={() => toggleBadgeActive(i)} />
+              {editingBadgeIdx === i ? (
+                <div className="flex-1 flex gap-2">
+                  <Input value={editingBadgeText} onChange={e => setEditingBadgeText(e.target.value)} className="flex-1" onKeyDown={e => e.key === 'Enter' && saveEditBadge()} />
+                  <Button size="sm" onClick={saveEditBadge}><Save className="w-3 h-3" /></Button>
+                </div>
+              ) : (
+                <>
+                  <span className="flex-1 text-sm font-medium">{badge.text}</span>
+                  <Button size="icon" variant="ghost" onClick={() => startEditBadge(i)}><Pencil className="w-3.5 h-3.5" /></Button>
+                </>
+              )}
+              <Button size="icon" variant="ghost" className="text-destructive" onClick={() => removeBadge(i)}><Trash2 className="w-3.5 h-3.5" /></Button>
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <Input value={newBadge} onChange={e => setNewBadge(e.target.value)} placeholder="Ex: 🔥 OFERTA RELÂMPAGO" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addBadge())} />
+            <Button size="sm" variant="outline" onClick={addBadge}><Plus className="w-3 h-3 mr-1" /> Add</Button>
           </div>
         </CardContent>
       </Card>

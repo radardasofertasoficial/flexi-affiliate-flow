@@ -34,6 +34,7 @@ export type Database = {
       }
       lead_modal_config: {
         Row: {
+          badges: Json
           id: string
           options: Json
           step1_description: string
@@ -46,6 +47,7 @@ export type Database = {
           whatsapp_number: string
         }
         Insert: {
+          badges?: Json
           id?: string
           options?: Json
           step1_description?: string
@@ -58,6 +60,7 @@ export type Database = {
           whatsapp_number?: string
         }
         Update: {
+          badges?: Json
           id?: string
           options?: Json
           step1_description?: string
