@@ -1,58 +1,77 @@
-## Melhorar a Pagina de Relatorios
 
-### O que vai mudar
 
-A pagina de relatorios sera reestruturada com as seguintes secoes, de cima para baixo:
+## Melhorias no Relatorio: Produtos sem cliques, Filtro e Links para Anuncios
 
-**1. Cabecalho com Filtro de Data**
+### Resumo das mudancas
 
-- Seletor de periodo com data inicial e data final (usando DatePicker com calendario)
-- Inicia mostrando o dia de hoje como padrao
-- Botao para aplicar o filtro
+**1. Incluir produtos sem cliques no relatorio**
+- Atualmente so aparecem produtos que tiveram cliques. A query sera ajustada para tambem trazer todos os produtos ativos que nao receberam nenhum clique no periodo (cliques = 0).
+- Isso permite identificar produtos "parados" na vitrine para decidir se vale manter ou remover.
 
-**2. Cards de Resumo (ja existentes)**
+**2. Filtro "Com cliques / Sem cliques / Todos"**
+- Tres botoes (ou tabs) no topo da area de listagem: **Todos** (padrao), **Com cliques**, **Sem cliques**
+- Ao iniciar, mostra todos. O usuario pode alternar para ver apenas os que nao estao performando.
 
-- Total de Cliques (filtrado pelo periodo)
-- Produtos com Cliques
-- Media por Produto
-- mais clicado
+**3. Clicar na imagem do produto abre o anuncio na plataforma**
+- Ao clicar na foto (tanto no Top 5 quanto na tabela de demais produtos), abre uma nova aba com o `affiliate_url` do produto, direcionando para o anuncio na Shopee/Mercado Livre.
+- Para isso, o campo `affiliate_url` sera incluido na query de produtos.
 
-**3. Categoria Mais Clicada**
+### Detalhes tecnicos
 
-- Card destacado mostrando qual categoria teve mais cliques no periodo selecionado, com o numero de cliques
+**Arquivo: `src/pages/admin/AdminReports.tsx`**
 
-**4. Top 5 Mais Clicados**
+1. **Interface ClickReport** -- adicionar campo `affiliate_url: string`
 
-- Secao com cards ou lista destacada dos 5 produtos mais clicados
-- Cada item mostra: miniatura da imagem do produto, titulo, categoria e numero de cliques
+2. **Query de produtos** (linha 44) -- incluir `affiliate_url`:
+   ```
+   .select('id, title, image, category, affiliate_url')
+   ```
 
-**5. Demais Produtos Clicados**
+3. **Logica de montagem do report** -- alem de montar rows a partir dos cliques, tambem incluir produtos que nao tiveram nenhum clique no periodo:
+   ```
+   // Depois de montar as rows com cliques, adicionar produtos sem cliques
+   products.forEach(p => {
+     if (!clickCount[p.id]) {
+       rows.push({
+         product_id: p.id,
+         title: p.title,
+         image: p.image,
+         category: p.category,
+         affiliate_url: p.affiliate_url,
+         clicks: 0,
+       });
+     }
+   });
+   ```
 
-- Tabela com todos os outros produtos que tiveram cliques (a partir do 6o)
-- Cada linha mostra: miniatura da imagem, titulo, categoria e cliques
+4. **Novo estado** `clickFilter`:
+   ```
+   const [clickFilter, setClickFilter] = useState<'all' | 'with' | 'without'>('all');
+   ```
 
-### Detalhes Tecnicos
+5. **Filtragem derivada** -- antes de separar em top5/rest, aplicar o filtro:
+   ```
+   const filteredReport = report.filter(r => {
+     if (clickFilter === 'with') return r.clicks > 0;
+     if (clickFilter === 'without') return r.clicks === 0;
+     return true;
+   });
+   ```
 
-**Arquivo: `src/pages/admin/AdminReports.tsx**` (reescrita completa)
+6. **UI do filtro** -- 3 botoes logo acima da secao Top 5 / tabela:
+   - "Todos" / "Com cliques" / "Sem cliques"
+   - O botao ativo recebe estilo `variant="default"`, os outros `variant="outline"`
 
-- Adicionar estados `dateFrom` e `dateTo` para o filtro de periodo
-- Usar componente DatePicker (Popover + Calendar do shadcn) para selecao de datas
-- Alterar a query do `product_clicks` para filtrar por `clicked_at` entre as datas selecionadas:
-  ```
-  .gte('clicked_at', dateFrom)
-  .lte('clicked_at', dateTo)
-  ```
-- Buscar produtos com `id, title, image, category` (em vez de apenas `id, title`)
-- Agrupar cliques por categoria para calcular a categoria mais clicada
-- Separar o array de resultados em `top5` (primeiros 5) e `rest` (demais)
-- Renderizar imagens com tamanho `w-10 h-10 rounded object-cover` (mesmo estilo da tabela de produtos)
+7. **Imagens clicaveis** -- envolver as imagens em tags `<a>`:
+   ```
+   <a href={r.affiliate_url} target="_blank" rel="noopener noreferrer">
+     <img src={r.image} ... className="... cursor-pointer hover:opacity-80 transition" />
+   </a>
+   ```
+   Isso se aplica tanto nos cards do Top 5 (linha ~200) quanto nas linhas da tabela (linha ~233).
 
-**Componentes utilizados (ja disponiveis no projeto):**
+8. **Cards de resumo** -- ajustar o card "Produtos com Cliques" para tambem mostrar o total de produtos (com e sem cliques), algo como "12 de 45 produtos".
 
-- `Calendar` de `@/components/ui/calendar`
-- `Popover` / `PopoverTrigger` / `PopoverContent` de `@/components/ui/popover`
-- `Button` de `@/components/ui/button`
-- `format` de `date-fns` para formatar datas
-- Icones do `lucide-react`
+9. **Secao "Sem cliques"** -- quando o filtro estiver em "Sem cliques", a secao Top 5 nao aparece (nao faz sentido rankear por 0 cliques). Mostra apenas a tabela com todos os produtos sem cliques, facilitando a limpeza da vitrine.
 
-Nenhuma migracao de banco e necessaria -- os dados de imagem e categoria ja existem na tabela `products`.
+Nenhuma migracao de banco necessaria -- o campo `affiliate_url` ja existe na tabela `products`.
