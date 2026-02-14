@@ -1,0 +1,154 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Download, MessageCircle, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+
+interface Lead {
+  id: string;
+  lead_type: string;
+  message: string;
+  source: string;
+  created_at: string;
+}
+
+const typeLabels: Record<string, string> = {
+  top10_ofertas: 'Top 10 Ofertas',
+  radar_ofertas: 'Radar das Ofertas',
+  cupom_exclusivo: 'Cupom Exclusivo',
+  alerta_promo: 'Alerta Promoção',
+  ofertas_exclusivas: 'Ofertas Exclusivas',
+  recomendacao: 'Recomendação',
+};
+
+const sourceLabels: Record<string, string> = {
+  popup_15s: 'Pop-up 15s',
+  whatsapp_float: 'Botão Flutuante',
+};
+
+const AdminLeads = () => {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const fetchLeads = async () => {
+    const { data, error } = await supabase
+      .from('leads')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    } else {
+      setLeads((data as Lead[]) || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchLeads(); }, []);
+
+  const exportExcel = () => {
+    const header = 'Tipo,Mensagem,Origem,Data\n';
+    const rows = leads.map(l =>
+      `"${typeLabels[l.lead_type] || l.lead_type}","${l.message}","${sourceLabels[l.source] || l.source}","${new Date(l.created_at).toLocaleString('pt-BR')}"`
+    ).join('\n');
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + header + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const deleteLead = async (id: string) => {
+    const { error } = await supabase.from('leads').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    } else {
+      setLeads(prev => prev.filter(l => l.id !== id));
+      toast({ title: 'Lead removido' });
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="font-display text-2xl font-bold">Leads WhatsApp</h1>
+        <Button onClick={exportExcel} variant="outline" disabled={leads.length === 0}>
+          <Download className="w-4 h-4 mr-2" /> Exportar CSV/Excel
+        </Button>
+      </div>
+
+      {/* Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="bg-card rounded-xl border border-border p-6">
+          <p className="text-sm text-muted-foreground">Total de Leads</p>
+          <p className="text-3xl font-display font-bold text-cta">{leads.length}</p>
+        </div>
+        <div className="bg-card rounded-xl border border-border p-6">
+          <p className="text-sm text-muted-foreground">Via Pop-up</p>
+          <p className="text-3xl font-display font-bold">
+            {leads.filter(l => l.source === 'popup_15s').length}
+          </p>
+        </div>
+        <div className="bg-card rounded-xl border border-border p-6">
+          <p className="text-sm text-muted-foreground">Via Botão Flutuante</p>
+          <p className="text-3xl font-display font-bold">
+            {leads.filter(l => l.source === 'whatsapp_float').length}
+          </p>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-muted-foreground">Carregando...</p>
+      ) : leads.length === 0 ? (
+        <div className="text-center py-20">
+          <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Nenhum lead capturado ainda.</p>
+        </div>
+      ) : (
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-secondary/50">
+                <th className="text-left p-3 font-medium text-muted-foreground">#</th>
+                <th className="text-left p-3 font-medium text-muted-foreground">Tipo</th>
+                <th className="text-left p-3 font-medium text-muted-foreground">Mensagem</th>
+                <th className="text-left p-3 font-medium text-muted-foreground">Origem</th>
+                <th className="text-left p-3 font-medium text-muted-foreground">Data</th>
+                <th className="text-right p-3 font-medium text-muted-foreground">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leads.map((l, i) => (
+                <tr key={l.id} className="border-b border-border last:border-0">
+                  <td className="p-3 text-muted-foreground">{i + 1}</td>
+                  <td className="p-3">
+                    <Badge variant="secondary">{typeLabels[l.lead_type] || l.lead_type}</Badge>
+                  </td>
+                  <td className="p-3 font-medium max-w-xs truncate">{l.message}</td>
+                  <td className="p-3">
+                    <Badge variant="outline">{sourceLabels[l.source] || l.source}</Badge>
+                  </td>
+                  <td className="p-3 text-muted-foreground">
+                    {new Date(l.created_at).toLocaleString('pt-BR')}
+                  </td>
+                  <td className="p-3 text-right">
+                    <Button variant="ghost" size="icon" onClick={() => deleteLead(l.id)}>
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdminLeads;

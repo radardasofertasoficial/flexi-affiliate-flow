@@ -32,6 +32,33 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          created_at: string
+          id: string
+          lead_type: string
+          message: string
+          phone_target: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_type: string
+          message: string
+          phone_target?: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_type?: string
+          message?: string
+          phone_target?: string
+          source?: string
+        }
+        Relationships: []
+      }
       product_clicks: {
         Row: {
           clicked_at: string
