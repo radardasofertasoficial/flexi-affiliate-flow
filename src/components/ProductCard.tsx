@@ -49,7 +49,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
           src={product.image || '/placeholder.svg'}
           alt={product.title}
           loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-contain bg-white group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute bottom-2 left-2">
           <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
