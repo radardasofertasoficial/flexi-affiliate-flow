@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 
 interface Lead {
   id: string;
+  name: string;
+  phone: string;
   lead_type: string;
   message: string;
   source: string;
@@ -21,11 +23,15 @@ const typeLabels: Record<string, string> = {
   alerta_promo: 'Alerta Promoção',
   ofertas_exclusivas: 'Ofertas Exclusivas',
   recomendacao: 'Recomendação',
+  produto_vale_pena: 'Vale a Pena?',
+  produto_pergunta: 'Pergunta Produto',
 };
 
 const sourceLabels: Record<string, string> = {
   popup_15s: 'Pop-up 15s',
   whatsapp_float: 'Botão Flutuante',
+  product_card: 'Card Produto',
+  como_funciona: 'Como Funciona',
 };
 
 const tagColors = [
@@ -39,8 +45,8 @@ const tagColors = [
 ];
 
 const allTags = [
-  'Roupas', 'Eletronicos', 'Ferramentas',
-  'Casa e Decoracao', 'Beleza e Saude', 'Esportes', 'Outros'
+  'Roupas', 'Eletrônicos', 'Ferramentas',
+  'Casa e Decoração', 'Beleza e Saúde', 'Esportes', 'Outros'
 ];
 
 const AdminLeads = () => {
@@ -69,15 +75,14 @@ const AdminLeads = () => {
     ? leads.filter(l => l.tags?.includes(filterTag))
     : leads;
 
-  // Top tags summary
   const tagCounts: Record<string, number> = {};
   leads.forEach(l => (l.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
   const topTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const exportExcel = () => {
-    const header = 'Tipo,Mensagem,Origem,Etiquetas,Data\n';
+    const header = 'Nome,WhatsApp,Tipo,Mensagem,Origem,Etiquetas,Data\n';
     const rows = filteredLeads.map(l =>
-      `"${typeLabels[l.lead_type] || l.lead_type}","${l.message}","${sourceLabels[l.source] || l.source}","${(l.tags || []).join(', ')}","${new Date(l.created_at).toLocaleString('pt-BR')}"`
+      `"${l.name || ''}","${l.phone || ''}","${typeLabels[l.lead_type] || l.lead_type}","${l.message}","${sourceLabels[l.source] || l.source}","${(l.tags || []).join(', ')}","${new Date(l.created_at).toLocaleString('pt-BR')}"`
     ).join('\n');
     const bom = '\uFEFF';
     const blob = new Blob([bom + header + rows], { type: 'text/csv;charset=utf-8;' });
@@ -104,6 +109,14 @@ const AdminLeads = () => {
     return tagColors[idx >= 0 ? idx : tagColors.length - 1];
   };
 
+  const formatPhone = (phone: string) => {
+    if (!phone) return '—';
+    const d = phone.replace(/\D/g, '');
+    if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+    if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+    return phone;
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -120,15 +133,15 @@ const AdminLeads = () => {
           <p className="text-3xl font-display font-bold text-cta">{leads.length}</p>
         </div>
         <div className="bg-card rounded-xl border border-border p-6">
-          <p className="text-sm text-muted-foreground">Via Pop-up</p>
-          <p className="text-3xl font-display font-bold">
-            {leads.filter(l => l.source === 'popup_15s').length}
+          <p className="text-sm text-muted-foreground">Com Contato</p>
+          <p className="text-3xl font-display font-bold text-green-600">
+            {leads.filter(l => l.name && l.phone).length}
           </p>
         </div>
         <div className="bg-card rounded-xl border border-border p-6">
-          <p className="text-sm text-muted-foreground">Via Botão Flutuante</p>
-          <p className="text-3xl font-display font-bold">
-            {leads.filter(l => l.source === 'whatsapp_float').length}
+          <p className="text-sm text-muted-foreground">Sem Contato</p>
+          <p className="text-3xl font-display font-bold text-orange-500">
+            {leads.filter(l => !l.name || !l.phone).length}
           </p>
         </div>
         <div className="bg-card rounded-xl border border-border p-6">
@@ -174,13 +187,14 @@ const AdminLeads = () => {
           <p className="text-muted-foreground">Nenhum lead encontrado.</p>
         </div>
       ) : (
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-secondary/50">
                 <th className="text-left p-3 font-medium text-muted-foreground">#</th>
+                <th className="text-left p-3 font-medium text-muted-foreground">Nome</th>
+                <th className="text-left p-3 font-medium text-muted-foreground">WhatsApp</th>
                 <th className="text-left p-3 font-medium text-muted-foreground">Tipo</th>
-                <th className="text-left p-3 font-medium text-muted-foreground">Mensagem</th>
                 <th className="text-left p-3 font-medium text-muted-foreground">Etiquetas</th>
                 <th className="text-left p-3 font-medium text-muted-foreground">Origem</th>
                 <th className="text-left p-3 font-medium text-muted-foreground">Data</th>
@@ -191,10 +205,24 @@ const AdminLeads = () => {
               {filteredLeads.map((l, i) => (
                 <tr key={l.id} className="border-b border-border last:border-0">
                   <td className="p-3 text-muted-foreground">{i + 1}</td>
+                  <td className="p-3 font-medium">{l.name || <span className="text-muted-foreground">—</span>}</td>
+                  <td className="p-3">
+                    {l.phone ? (
+                      <a
+                        href={`https://wa.me/55${l.phone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-green-600 hover:underline font-medium"
+                      >
+                        {formatPhone(l.phone)}
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="p-3">
                     <Badge variant="secondary">{typeLabels[l.lead_type] || l.lead_type}</Badge>
                   </td>
-                  <td className="p-3 font-medium max-w-xs truncate">{l.message}</td>
                   <td className="p-3">
                     <div className="flex flex-wrap gap-1">
                       {(l.tags || []).length > 0 ? l.tags.map(tag => (
@@ -207,7 +235,7 @@ const AdminLeads = () => {
                   <td className="p-3">
                     <Badge variant="outline">{sourceLabels[l.source] || l.source}</Badge>
                   </td>
-                  <td className="p-3 text-muted-foreground">
+                  <td className="p-3 text-muted-foreground whitespace-nowrap">
                     {new Date(l.created_at).toLocaleString('pt-BR')}
                   </td>
                   <td className="p-3 text-right">
