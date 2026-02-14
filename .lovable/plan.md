@@ -1,24 +1,62 @@
 
 
-## Restaurar campos de Avaliação e Reviews + Badge padrão
+## Upload de Imagem + Visitas na Vitrine + Simplificar WhatsApp
 
-### O que muda
+### Resumo das mudanças
 
-1. **Campos de Nota e Reviews voltam ao formulário de produto** — dois campos numéricos no dialog de criação/edição:
-   - **Nota (rating)**: campo numérico de 0 a 5, com step 0.1
-   - **Avaliações (reviews)**: campo numérico inteiro
+1. **Upload de imagem do computador** — no formulário de produto, além do campo "URL da Imagem", haverá um botão para subir arquivo (JPG, JPEG, PNG) do computador. O arquivo será armazenado no storage e a URL gerada será usada como imagem do produto.
 
-2. **Badge sempre com valor padrão** — ao abrir o formulário de novo produto, o badge já vem selecionado com a primeira opção ativa da lista de badges configurados. Nunca fica "Sem badge".
+2. **Vitrine: trocar um botão WhatsApp por contador de visitas** — dos dois botões WhatsApp ("Vale a pena?" e "Perguntar"), manter apenas um ("Perguntar no WhatsApp"). No lugar do segundo, exibir um contador de visitas/cliques (ex: "👁 1.234 visitas").
+
+3. **Novo campo: Visitas (views_count)** — novo campo no banco e no formulário admin para definir um número inicial de visitas. Com toggle para decidir se mostra ou não na vitrine.
+
+---
 
 ### Detalhes técnicos
 
-**Arquivo: `src/pages/admin/AdminProducts.tsx`**
+**Migração SQL:**
+```sql
+ALTER TABLE public.products
+ADD COLUMN views_count integer DEFAULT 0,
+ADD COLUMN show_views boolean DEFAULT false;
+```
 
-- Atualizar `emptyProduct` para incluir `rating: 0` e `reviews: 0`
-- Mudar a lógica de inicialização do badge: ao abrir "Novo Produto", definir `badge` como o texto do primeiro badge ativo (da lista de `activeBadges`), em vez de string vazia
-- Adicionar dois campos no grid do formulário (dialog):
-  - "Nota" — `<Input type="number" step="0.1" min="0" max="5" />`
-  - "Avaliações" — `<Input type="number" min="0" />`
-- No `openEdit`, garantir que `rating` e `reviews` são mapeados do produto existente
+**Storage — bucket para imagens de produtos:**
+```sql
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('product-images', 'product-images', true);
 
-**Nenhuma mudança de banco de dados necessária** — os campos `rating` e `reviews` já existem na tabela `products`.
+CREATE POLICY "Anyone can view product images"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'product-images');
+
+CREATE POLICY "Admins can upload product images"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'product-images' AND public.is_admin());
+
+CREATE POLICY "Admins can delete product images"
+ON storage.objects FOR DELETE
+USING (bucket_id = 'product-images' AND public.is_admin());
+```
+
+**Tipos (`src/types/database.ts`):**
+- Adicionar `views_count: number` e `show_views: boolean` ao `Product`
+- Adicionar `views_count?: number` e `show_views?: boolean` ao `ProductInsert`
+
+**Admin (`src/pages/admin/AdminProducts.tsx`):**
+- No campo de imagem, adicionar botão "Enviar arquivo" ao lado do input de URL
+- Aceitar `.jpg, .jpeg, .png`
+- Ao fazer upload, enviar para o bucket `product-images` e preencher o campo `image` com a URL pública
+- Novos campos: "Visitas" (number) e toggle "Mostrar visitas"
+- Atualizar `emptyProduct` e `openEdit` com os novos campos
+
+**Vitrine (`src/components/ProductCard.tsx`):**
+- Remover o botão "Vale a pena?" (WhatsApp)
+- Transformar a área de 2 botões em: 1 botão WhatsApp "Perguntar" (largura total) + exibição de visitas
+- Exibir "👁 X visitas" quando `show_views === true` e `views_count > 0`
+
+**Arquivos alterados:**
+- Nova migração SQL (storage bucket + colunas)
+- `src/types/database.ts` — novos campos
+- `src/pages/admin/AdminProducts.tsx` — upload de imagem + campos de visitas
+- `src/components/ProductCard.tsx` — simplificar botões + exibir visitas
