@@ -12,6 +12,7 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminUsers from "./pages/admin/AdminUsers";
 import NotFound from "./pages/NotFound";
+import ComoFunciona from "./pages/ComoFunciona";
 import WhatsAppFloat from "./components/WhatsAppFloat";
 import LeadCapturePopup from "./components/LeadCapturePopup";
 import AdminLeads from "./pages/admin/AdminLeads";
@@ -28,6 +29,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/como-funciona" element={<ComoFunciona />} />
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminProducts />} />
               <Route path="categories" element={<AdminCategories />} />
