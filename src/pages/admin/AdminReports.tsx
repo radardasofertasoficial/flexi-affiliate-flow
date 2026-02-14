@@ -327,6 +327,7 @@ const AdminReports = () => {
                     <ProductImage item={r} />
                     <p className="text-sm font-medium leading-tight line-clamp-2">{r.title}</p>
                     <span className="text-xs text-muted-foreground">{r.category}</span>
+                    <span className="text-xs text-muted-foreground">R$ {r.price.toFixed(2)}</span>
                     <span className="text-lg font-bold text-cta">{r.clicks}</span>
                   </div>
                 ))}
@@ -348,6 +349,7 @@ const AdminReports = () => {
                       <th className="text-left p-3 font-medium text-muted-foreground">Imagem</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Produto</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Categoria</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground">Preço</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">Cliques</th>
                     </tr>
                   </thead>
@@ -360,6 +362,7 @@ const AdminReports = () => {
                         </td>
                         <td className="p-3 font-medium">{r.title}</td>
                         <td className="p-3 text-muted-foreground">{r.category}</td>
+                        <td className="p-3 text-right text-muted-foreground">R$ {r.price.toFixed(2)}</td>
                         <td className="p-3 text-right font-bold text-cta">{r.clicks}</td>
                       </tr>
                     ))}
