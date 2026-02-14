@@ -5,10 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Search, CalendarIcon, X } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { startOfDay, endOfDay, format, subDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const emptyProduct: ProductInsert = {
   title: '', price: 0, affiliate_url: '', store: 'shopee', category: 'Outros',
@@ -25,6 +30,11 @@ const AdminProducts = () => {
   const [form, setForm] = useState<ProductInsert>(emptyProduct);
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStore, setSelectedStore] = useState('Todas');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 7));
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
   const { toast } = useToast();
 
   const fetchProducts = async () => {
@@ -101,10 +111,25 @@ const AdminProducts = () => {
 
   const updateField = (key: keyof ProductInsert, value: any) => setForm(f => ({ ...f, [key]: value }));
 
+  const hasActiveFilters = selectedStore !== 'Todas' || dateFrom || dateTo || priceMin || priceMax;
+
+  const clearFilters = () => {
+    setSelectedStore('Todas');
+    setDateFrom(undefined);
+    setDateTo(undefined);
+    setPriceMin('');
+    setPriceMax('');
+  };
+
   const filteredProducts = products.filter(p => {
     const matchCategory = selectedCategory === 'Todos' || p.category === selectedCategory;
     const matchSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchCategory && matchSearch;
+    const matchStore = selectedStore === 'Todas' || p.store === selectedStore;
+    const matchDateFrom = !dateFrom || new Date(p.created_at) >= startOfDay(dateFrom);
+    const matchDateTo = !dateTo || new Date(p.created_at) <= endOfDay(dateTo);
+    const matchPriceMin = !priceMin || Number(p.price) >= parseFloat(priceMin);
+    const matchPriceMax = !priceMax || Number(p.price) <= parseFloat(priceMax);
+    return matchCategory && matchSearch && matchStore && matchDateFrom && matchDateTo && matchPriceMin && matchPriceMax;
   });
 
   return (
@@ -214,8 +239,27 @@ const AdminProducts = () => {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+
+        {/* Store filter */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {([['Todas', 'Todas'], ['Shopee', 'shopee'], ['Mercado Livre', 'mercadolivre']] as const).map(([label, value]) => (
+            <button
+              key={value}
+              onClick={() => setSelectedStore(value)}
+              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                selectedStore === value
+                  ? 'bg-cta text-cta-foreground shadow-cta'
+                  : 'bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search, dates, price */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               value={searchQuery}
@@ -224,12 +268,53 @@ const AdminProducts = () => {
               className="pl-9"
             />
           </div>
-          <span className="text-sm text-muted-foreground whitespace-nowrap">
-            {filteredProducts.length === products.length
-              ? `${products.length} produtos`
-              : `${filteredProducts.length} de ${products.length} produtos`}
-          </span>
+
+          {/* Date From */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal text-xs", !dateFrom && "text-muted-foreground")}>
+                <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "De"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className="p-3 pointer-events-auto" locale={ptBR} />
+            </PopoverContent>
+          </Popover>
+
+          {/* Date To */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal text-xs", !dateTo && "text-muted-foreground")}>
+                <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "Até"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className="p-3 pointer-events-auto" locale={ptBR} />
+            </PopoverContent>
+          </Popover>
+
+          {/* Price range */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">R$</span>
+            <Input type="number" placeholder="Min" value={priceMin} onChange={e => setPriceMin(e.target.value)} className="w-[80px] h-9 text-xs" />
+            <span className="text-xs text-muted-foreground">-</span>
+            <Input type="number" placeholder="Max" value={priceMax} onChange={e => setPriceMax(e.target.value)} className="w-[80px] h-9 text-xs" />
+          </div>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs text-muted-foreground">
+              <X className="w-3.5 h-3.5 mr-1" /> Limpar filtros
+            </Button>
+          )}
         </div>
+
+        <span className="text-sm text-muted-foreground">
+          {filteredProducts.length === products.length
+            ? `${products.length} produtos`
+            : `${filteredProducts.length} de ${products.length} produtos`}
+        </span>
       </div>
 
       {loading ? (
