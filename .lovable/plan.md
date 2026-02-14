@@ -1,47 +1,54 @@
-## Isca Digital + Pop-up Estratégico de Captura de Leads
 
-Vamos implementar dois mecanismos de captura de leads que trabalham juntos para maximizar conversão.
+## Etiquetas de Interesse nos Leads (Segmentacao por Categoria)
 
-### 1. Pop-up Estratégico (após 15 segundos)
+Vamos adicionar um passo de selecao de categorias de interesse antes de redirecionar o visitante para o WhatsApp. Isso permite segmentar os leads por tipo de produto que a pessoa quer receber promocao.
 
-Um modal que aparece automaticamente após 15 segundos de navegação, com visual impactante:
+### Como vai funcionar para o visitante
 
-- Icone de raio + titulo "Antes de sair!"
-- Subtitulo: "Quer receber as melhores promocoes no WhatsApp?"
-- Quatro opcoes de isca digital como botoes:
-  - "Lista das 10 melhores ofertas do mes"
-  - "Guia de compra inteligente"
-  - "Cupom exclusivo"
-  - "Alerta de promocao relampago"
-- Cada botao abre o WhatsApp com mensagem pre-preenchida correspondente
-- Botao de fechar (X) e opcao "Nao, obrigado"
-- Salva no `localStorage` que o usuario ja viu, para nao mostrar novamente na mesma sessao
+Tanto no pop-up quanto no botao flutuante, apos clicar em uma opcao (ex: "Cupom exclusivo"), aparece uma segunda tela rapida com etiquetas clicaveis:
 
-### 2. Atualizacao do Botao Flutuante
+- Roupas
+- Eletronicos
+- Ferramentas
+- Casa e Decoracao
+- Beleza e Saude
+- Esportes
+- Outros
 
-O `WhatsAppFloat` existente sera atualizado para incluir as mesmas iscas digitais no card expandido, substituindo as opcoes atuais por:
+A pessoa seleciona uma ou mais categorias (multi-selecao com chips/badges), clica em "Enviar pelo WhatsApp" e a mensagem ja vai personalizada, por exemplo:
+> "Quero meu cupom exclusivo! Interesses: Roupas, Eletronicos"
 
-- "Lista das 10 melhores ofertas"
-- "Entre para Radas das Ofertas" 
-- "Cupom exclusivo"
-- "Alerta de promocao relampago"
+### O que muda no banco de dados
+
+- Nova coluna `tags` (tipo `text[]`, array de texto) na tabela `leads` para guardar as categorias selecionadas
+- Valor padrao: array vazio `'{}'`
+
+### O que muda no painel admin
+
+- Nova coluna "Etiquetas" na tabela de leads mostrando badges coloridos
+- Filtro por etiqueta no topo da pagina
+- Etiquetas incluidas no export CSV/Excel
+- Card de resumo mostrando as etiquetas mais populares
 
 ### Detalhes tecnicos
 
-**Arquivos envolvidos:**
+**Banco de dados:**
+- Migration: `ALTER TABLE public.leads ADD COLUMN tags text[] NOT NULL DEFAULT '{}';`
 
-- `src/components/LeadCapturePopup.tsx` (novo) - Modal com timer de 15s e iscas digitais
-- `src/components/WhatsAppFloat.tsx` (atualizado) - Novas opcoes de isca no card
-- `src/App.tsx` (atualizado) - Incluir o novo componente LeadCapturePopup
-- `tailwind.config.ts` (atualizado) - Adicionar animacao `fade-up` e `pulse-badge` se necessario
+**Componentes atualizados:**
+- `src/components/LeadCapturePopup.tsx` - Adicionar estado de "step 2" com selecao de categorias antes de abrir o WhatsApp
+- `src/components/WhatsAppFloat.tsx` - Mesma logica de selecao de categorias no card expandido
+- `src/pages/admin/AdminLeads.tsx` - Mostrar coluna de etiquetas, filtro por etiqueta, incluir no CSV
 
-**Logica do pop-up:**
+**Fluxo em 2 passos:**
+1. Visitante clica na isca digital (ex: "Cupom exclusivo")
+2. Aparece selecao de categorias com chips toggleaveis
+3. Clica "Enviar" -> salva lead com tags no banco -> abre WhatsApp com mensagem personalizada
 
-- `useEffect` com `setTimeout` de 15 segundos
-- Verificacao de `localStorage` para nao repetir na sessao
-- Exibido apenas na pagina publica (nao no admin)
-- Usa o componente Dialog do shadcn/ui para o modal
-
-**Sem dependencias novas** - tudo com React, Tailwind e componentes existentes.
-
-Todos os leads, eu quero que esteja no painel do admin, para eu visualizar depois, e exportar, deixar guardado no banco de dados, mas que eu consiga, exporta para um excel
+**Lista de categorias (gerenciada no codigo inicialmente):**
+```
+const interestTags = [
+  'Roupas', 'Eletronicos', 'Ferramentas',
+  'Casa e Decoracao', 'Beleza e Saude', 'Esportes', 'Outros'
+];
+```
