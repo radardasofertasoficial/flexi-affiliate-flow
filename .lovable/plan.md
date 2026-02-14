@@ -1,106 +1,77 @@
 
+## Auto-preenchimento de Produto via Link da Plataforma
 
-## Instalar Pixel do Meta + Google Analytics (GA4) com Eventos de Rastreamento
+### O que muda
 
-### Resumo
+Ao criar um novo produto, voce tera um campo extra **"Link do Produto (plataforma)"** no topo do formulario. Ao colar o link da Shopee (ou qualquer outra plataforma) e clicar em "Buscar dados", o sistema vai automaticamente preencher:
 
-Adicionar os scripts do Meta Pixel e Google Analytics 4 ao site, criar eventos padronizados (PageView, Click CTA, Lead), e preparar para criacao automatica de publicos. O modal obrigatorio antes da oferta ja existe -- vamos apenas adicionar os disparos de eventos nele.
+- Titulo
+- Descricao
+- Imagem principal
+- Preco atual
+- Preco original (se disponivel)
+- Quantidade vendida (novo campo!)
 
----
+Voce ainda preenche o **Link de Afiliado** manualmente -- esse e o link que redireciona os visitantes.
 
-### Passo 1 -- Voce cria as contas (antes de eu implementar)
+### Novo campo: Quantidade Vendida
 
-**Meta Pixel:**
-1. Acesse [business.facebook.com](https://business.facebook.com)
-2. Va em "Eventos" > "Conectar fontes de dados" > "Web" > "Pixel da Meta"
-3. Crie o pixel e copie o **Pixel ID** (numero com ~15 digitos, ex: `123456789012345`)
+- Adicionar coluna `sales_count` na tabela `products` (numero inteiro, padrao 0)
+- Adicionar um toggle **"Mostrar vendidos"** (`show_sales`) na tabela (booleano, padrao false)
+- Na vitrine (ProductCard), exibir algo como "1.234 vendidos" apenas quando o toggle estiver ativo
+- No admin, voce pode editar manualmente ou deixar o valor que veio do scraping
 
-**Google Analytics 4:**
-1. Acesse [analytics.google.com](https://analytics.google.com)
-2. Crie uma propriedade GA4
-3. Va em "Administracao" > "Fluxos de dados" > "Web" > Adicione o dominio do seu site
-4. Copie o **Measurement ID** (formato `G-XXXXXXXXXX`)
+### Fluxo no formulario
 
-Depois de criar, cole os dois IDs aqui no chat.
+```text
++--------------------------------------------------+
+| Link do Produto (plataforma)                     |
+| [https://shopee.com.br/produto-xyz...]  [Buscar] |
++--------------------------------------------------+
+       |  (carregando...)
+       v
+  Preenche automaticamente:
+  - Titulo
+  - Descricao  
+  - Imagem
+  - Preco / Preco original
+  - Quantidade vendida
++--------------------------------------------------+
+| Link de Afiliado *  (preenchimento manual)        |
+| [https://shope.ee/aff123...]                      |
++--------------------------------------------------+
+```
 
----
-
-### Passo 2 -- Configuracao no Admin (dinamica)
-
-Adicionar dois campos nas Configuracoes do admin para que voce possa inserir/alterar os IDs sem precisar mexer no codigo:
-
-- Campo **Meta Pixel ID** (na secao de configuracoes)
-- Campo **GA4 Measurement ID** (na secao de configuracoes)
-
-Esses valores serao salvos na tabela `lead_modal_config` (reaproveitando a config existente) com os campos `meta_pixel_id` e `ga4_measurement_id`.
-
----
-
-### Passo 3 -- Scripts de rastreamento
-
-Criar um componente `TrackingScripts` que:
-- Carrega o script do Meta Pixel (`fbq`) com o Pixel ID configurado
-- Carrega o script do Google Analytics (`gtag`) com o Measurement ID configurado
-- Dispara automaticamente o evento **PageView** ao carregar qualquer pagina
-- Dispara novamente **PageView** em cada mudanca de rota (SPA)
-
-O componente sera adicionado ao `App.tsx`.
-
----
-
-### Passo 4 -- Eventos personalizados
-
-Criar um utilitario `src/lib/tracking.ts` com funcoes reutilizaveis:
-
-| Evento | Quando dispara | Meta Pixel | GA4 |
-|---|---|---|---|
-| **PageView** | Cada pagina carregada | `fbq('track', 'PageView')` | `gtag('event', 'page_view')` |
-| **ClickCTA** | Clique no botao "Ver Oferta" | `fbq('trackCustom', 'ClickCTA', {...})` | `gtag('event', 'click_cta', {...})` |
-| **Lead** | Lead salvo com sucesso no modal | `fbq('track', 'Lead', {...})` | `gtag('event', 'generate_lead', {...})` |
-
-Parametros enviados nos eventos:
-- `ClickCTA`: nome do produto, loja, categoria, preco
-- `Lead`: nome, tipo de interesse, tags selecionadas, source
-
----
-
-### Passo 5 -- Integrar eventos nos componentes
-
-**`ProductCard.tsx`** -- Disparar `ClickCTA` ao clicar em "Ver Oferta"
-
-**`LeadCaptureModal.tsx`** -- Disparar `Lead` ao concluir o cadastro com sucesso
-
-**`TrackingScripts.tsx`** -- Disparar `PageView` automaticamente em cada navegacao
-
----
-
-### Passo 6 -- Publicos automaticos
-
-Com os eventos configurados, voce podera criar publicos automaticamente nos paineis do Meta e Google:
-
-- **Meta Ads Manager**: "Publicos" > "Publico Personalizado" > "Site" > selecionar eventos (PageView, ClickCTA, Lead)
-- **Google Analytics**: "Administracao" > "Publicos" > criar com base nos eventos (ex: "Usuarios que clicaram CTA nos ultimos 7 dias")
-
-A criacao de publicos e feita diretamente nas plataformas Meta/Google, nao no codigo. Os eventos que vamos disparar sao exatamente os que as plataformas usam para criar esses publicos.
-
----
+Todos os campos preenchidos automaticamente podem ser editados antes de salvar.
 
 ### Detalhes tecnicos
 
 **Migracao SQL:**
-- Adicionar campos `meta_pixel_id` (text) e `ga4_measurement_id` (text) na tabela `lead_modal_config`
+```sql
+ALTER TABLE public.products
+ADD COLUMN sales_count integer DEFAULT 0,
+ADD COLUMN show_sales boolean DEFAULT false;
+```
 
-**Novos arquivos:**
-- `src/lib/tracking.ts` -- funcoes `trackPageView()`, `trackClickCTA(product)`, `trackLead(data)`
-- `src/components/TrackingScripts.tsx` -- componente que injeta os scripts e rastreia pageviews
+**Edge function `firecrawl-scrape`:**
+- Ja existe e ja extrai titulo, descricao, imagem e preco
+- Sera atualizada para tambem extrair quantidade vendida do markdown (ex: regex para "X vendidos", "X mil vendidos", padrao Shopee)
+- Tambem tentar extrair o preco original (riscado) para calcular desconto
+
+**Tipos (`src/types/database.ts`):**
+- Adicionar `sales_count` e `show_sales` ao `Product` e `ProductInsert`
+
+**Admin (`src/pages/admin/AdminProducts.tsx`):**
+- Novo campo "Link do Produto" + botao "Buscar dados" no dialog de criacao/edicao
+- Estado de loading enquanto busca
+- Ao receber dados, preencher os campos do formulario automaticamente
+- Campos editaveis de `sales_count` e toggle `show_sales`
+
+**Vitrine (`src/components/ProductCard.tsx`):**
+- Exibir "X vendidos" ao lado do rating/reviews, quando `show_sales` for true e `sales_count > 0`
 
 **Arquivos alterados:**
-- `src/hooks/useLeadModalConfig.ts` -- adicionar campos pixel/ga4 na interface
-- `src/pages/admin/AdminSettings.tsx` -- adicionar secao "Rastreamento" com campos para os IDs
-- `src/App.tsx` -- adicionar `TrackingScripts` dentro do `BrowserRouter`
-- `src/components/ProductCard.tsx` -- chamar `trackClickCTA` no clique
-- `src/components/LeadCaptureModal.tsx` -- chamar `trackLead` no submit com sucesso
-
-**Modal obrigatorio:**
-Ja esta implementado. O lead e obrigatorio antes de ver a oferta, entao o evento Lead sempre dispara antes do ClickCTA -- perfeito para o funil de conversao.
-
+- `supabase/functions/firecrawl-scrape/index.ts` -- melhorar extracao (vendidos, preco original)
+- `src/types/database.ts` -- novos campos
+- `src/pages/admin/AdminProducts.tsx` -- campo de busca + novos campos no form
+- `src/components/ProductCard.tsx` -- exibir vendidos
