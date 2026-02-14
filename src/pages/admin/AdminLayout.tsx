@@ -36,7 +36,7 @@ const AdminLayout = () => {
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Flame className="w-5 h-5 text-cta" />
-            <span className="font-display font-bold text-lg">Admin</span>
+            <span className="font-display font-bold text-lg">Radar Admin</span>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1">

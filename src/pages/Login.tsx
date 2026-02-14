@@ -39,7 +39,7 @@ const Login = () => {
       <div className="w-full max-w-sm bg-card rounded-xl p-8 shadow-card-hover">
         <div className="flex items-center justify-center gap-2 mb-8">
           <Flame className="w-8 h-8 text-cta" />
-          <span className="font-display font-bold text-2xl text-card-foreground">OfertaMax</span>
+          <span className="font-display font-bold text-2xl text-card-foreground">Radar de Ofertas</span>
         </div>
         <h1 className="font-display text-xl text-center text-card-foreground mb-6">{isSignUp ? 'Criar Conta' : 'Painel Administrativo'}</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
