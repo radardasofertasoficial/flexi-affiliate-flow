@@ -1,29 +1,37 @@
-## Tornar Selecao de Interesses Obrigatoria no Cadastro de Leads
+
+
+## Filtros na Aba de Produtos: Categorias e Busca
 
 ### O que muda
 
-No segundo passo do modal de captura de leads (`LeadCaptureModal`), o usuario sera **obrigado** a:
+1. **Barra de categorias** no topo da listagem -- botoes com "Todos" + cada categoria cadastrada. Ao clicar, filtra a tabela para mostrar apenas produtos daquela categoria.
 
-1. Selecionar uma **opcao principal** (ja existe, mas sem feedback visual de erro)
-2. Selecionar **pelo menos uma tag de interesse** (atualmente opcional)
+2. **Campo de busca** -- um input de texto para pesquisar produtos pelo nome. Filtra em tempo real conforme o usuario digita.
 
-consegue colocar uma informação que fica em destaque, pulsando, apaga e acende, sei lá ? algo assim ?
-
-Sem preencher ambos, o botao "ENTRAR NO RADAR" ficara desabilitado e uma mensagem de validacao aparecera orientando o usuario.
+Ambos os filtros funcionam em conjunto: se o usuario selecionar uma categoria e digitar uma busca, so aparecem produtos que atendem aos dois criterios.
 
 ### Detalhes tecnicos
 
-**Arquivo: `src/components/LeadCaptureModal.tsx**`
+**Arquivo: `src/pages/admin/AdminProducts.tsx`**
 
-1. **Desabilitar botao de submit** -- alterar a condicao `disabled` do botao final de:
-  ```
-   disabled={!selectedOption || submitting}
-  ```
-   para:
-2. **Mensagens de validacao** -- adicionar textos de orientacao:
-  - Abaixo das opcoes principais: "Selecione uma opcao" (aparece apenas se o usuario tentar submeter sem selecionar)
-  - Abaixo das tags: "Selecione pelo menos um interesse" (aparece se nenhuma tag estiver marcada)
-  - Usar estilo `text-xs text-destructive` consistente com os erros do passo 1
-3. **Feedback visual sutil** -- as mensagens aparecem de forma permanente enquanto nada estiver selecionado (sem necessidade de estado extra de "tentou submeter"), servindo como guia claro para o usuario.
+1. **Novos estados**:
+   - `selectedCategory: string` (default `'Todos'`)
+   - `searchQuery: string` (default `''`)
 
-Nenhuma migracao de banco necessaria.
+2. **UI dos filtros** -- inserir entre o cabecalho (h1 + botao "Novo Produto") e a tabela:
+   - Barra de categorias: botoes horizontais com scroll, usando as categorias ja carregadas (`categories`), prefixadas com "Todos". Estilo similar ao `CategoryBar` da vitrine (botao ativo com `bg-cta`, demais com `bg-secondary`).
+   - Campo de busca: `Input` com icone de lupa (`Search` do lucide) e placeholder "Buscar produto...".
+
+3. **Filtragem derivada** -- criar `filteredProducts` a partir de `products`:
+   ```
+   const filteredProducts = products.filter(p => {
+     const matchCategory = selectedCategory === 'Todos' || p.category === selectedCategory;
+     const matchSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
+     return matchCategory && matchSearch;
+   });
+   ```
+   Usar `filteredProducts` no lugar de `products` na renderizacao da tabela.
+
+4. **Contador** -- exibir quantidade de produtos filtrados (ex: "12 produtos" ou "3 de 45 produtos") para dar feedback visual ao usuario.
+
+Nenhuma migracao de banco necessaria -- todos os dados ja estao disponiveis.
