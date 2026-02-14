@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useLeadModalConfig, useUpdateLeadModalConfig, type LeadOption } from '@/hooks/useLeadModalConfig';
+import { usePlatforms, useUpsertPlatform, useDeletePlatform, type Platform } from '@/hooks/usePlatforms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings, Plus, Trash2, Save, Loader2 } from 'lucide-react';
+import { Settings, Plus, Trash2, Save, Loader2, Pencil, Store } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 const AdminSettings = () => {
   const { data: config, isLoading } = useLeadModalConfig();
   const updateConfig = useUpdateLeadModalConfig();
+
+  const { data: platforms = [], isLoading: loadingPlatforms } = usePlatforms();
+  const upsertPlatform = useUpsertPlatform();
+  const deletePlatform = useDeletePlatform();
 
   const [step1Title, setStep1Title] = useState('');
   const [step1Desc, setStep1Desc] = useState('');
@@ -22,6 +27,14 @@ const AdminSettings = () => {
   const [newTag, setNewTag] = useState('');
   const [whatsappLink, setWhatsappLink] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+
+  // Platform form state
+  const [editingPlatform, setEditingPlatform] = useState<Platform | null>(null);
+  const [pfName, setPfName] = useState('');
+  const [pfSlug, setPfSlug] = useState('');
+  const [pfLogo, setPfLogo] = useState('');
+  const [pfActive, setPfActive] = useState(true);
+  const [showPlatformForm, setShowPlatformForm] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -73,6 +86,65 @@ const AdminSettings = () => {
   };
   const removeTag = (tag: string) => setTags(prev => prev.filter(t => t !== tag));
 
+  // Platform helpers
+  const generateSlug = (name: string) => name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '').trim();
+
+  const openNewPlatform = () => {
+    setEditingPlatform(null);
+    setPfName('');
+    setPfSlug('');
+    setPfLogo('');
+    setPfActive(true);
+    setShowPlatformForm(true);
+  };
+
+  const openEditPlatform = (p: Platform) => {
+    setEditingPlatform(p);
+    setPfName(p.name);
+    setPfSlug(p.slug);
+    setPfLogo(p.logo_url || '');
+    setPfActive(p.active);
+    setShowPlatformForm(true);
+  };
+
+  const handleSavePlatform = async () => {
+    if (!pfName || !pfSlug) {
+      toast.error('Nome e slug são obrigatórios');
+      return;
+    }
+    try {
+      await upsertPlatform.mutateAsync({
+        id: editingPlatform?.id,
+        name: pfName,
+        slug: pfSlug,
+        logo_url: pfLogo || null,
+        active: pfActive,
+      });
+      toast.success(editingPlatform ? 'Plataforma atualizada!' : 'Plataforma criada!');
+      setShowPlatformForm(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar plataforma');
+    }
+  };
+
+  const handleDeletePlatform = async (id: string) => {
+    if (!confirm('Excluir esta plataforma?')) return;
+    try {
+      await deletePlatform.mutateAsync(id);
+      toast.success('Plataforma excluída');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao excluir');
+    }
+  };
+
+  const handleTogglePlatformActive = async (p: Platform) => {
+    try {
+      await upsertPlatform.mutateAsync({ ...p, active: !p.active });
+    } catch {
+      toast.error('Erro ao atualizar status');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -86,13 +158,81 @@ const AdminSettings = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Settings className="w-5 h-5 text-cta" />
-          <h1 className="text-2xl font-display font-bold">Configurações do Modal</h1>
+          <h1 className="text-2xl font-display font-bold">Configurações</h1>
         </div>
         <Button onClick={handleSave} disabled={updateConfig.isPending} className="bg-cta text-cta-foreground hover:bg-cta/90">
           {updateConfig.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
           Salvar
         </Button>
       </div>
+
+      {/* Platforms */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Store className="w-4 h-4 text-cta" />
+              <CardTitle className="text-base">Plataformas</CardTitle>
+            </div>
+            <Button size="sm" variant="outline" onClick={openNewPlatform}><Plus className="w-3 h-3 mr-1" /> Nova Plataforma</Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {loadingPlatforms ? (
+            <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <>
+              {platforms.map(p => (
+                <div key={p.id} className={`flex items-center gap-3 p-2 rounded-lg border border-border transition-opacity ${!p.active ? 'opacity-40' : ''}`}>
+                  {p.logo_url ? (
+                    <img src={p.logo_url} alt={p.name} className="w-8 h-8 rounded object-contain bg-white" />
+                  ) : (
+                    <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center text-xs font-bold text-muted-foreground">{p.name[0]}</div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-foreground">{p.name}</p>
+                    <p className="text-xs text-muted-foreground">{p.slug}</p>
+                  </div>
+                  <Switch checked={p.active} onCheckedChange={() => handleTogglePlatformActive(p)} />
+                  <Button size="icon" variant="ghost" onClick={() => openEditPlatform(p)}><Pencil className="w-3.5 h-3.5" /></Button>
+                  <Button size="icon" variant="ghost" className="text-destructive" onClick={() => handleDeletePlatform(p.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                </div>
+              ))}
+
+              {showPlatformForm && (
+                <div className="border border-border rounded-lg p-4 space-y-3 bg-secondary/30">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Nome</Label>
+                      <Input value={pfName} onChange={e => { setPfName(e.target.value); if (!editingPlatform) setPfSlug(generateSlug(e.target.value)); }} placeholder="Ex: Magalu" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Slug</Label>
+                      <Input value={pfSlug} onChange={e => setPfSlug(e.target.value)} placeholder="Ex: magalu" className="mt-1" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">URL do Logo</Label>
+                    <Input value={pfLogo} onChange={e => setPfLogo(e.target.value)} placeholder="https://..." className="mt-1" />
+                    {pfLogo && <img src={pfLogo} alt="preview" className="w-8 h-8 mt-2 rounded object-contain bg-white border" />}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={pfActive} onCheckedChange={setPfActive} />
+                    <Label className="text-xs">Ativa na vitrine</Label>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleSavePlatform} disabled={upsertPlatform.isPending} className="bg-cta text-cta-foreground hover:bg-cta/90">
+                      {upsertPlatform.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
+                      {editingPlatform ? 'Atualizar' : 'Criar'}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setShowPlatformForm(false)}>Cancelar</Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* WhatsApp */}
       <Card>
