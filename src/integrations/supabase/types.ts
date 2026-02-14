@@ -38,6 +38,8 @@ export type Database = {
           id: string
           lead_type: string
           message: string
+          name: string
+          phone: string
           phone_target: string
           source: string
           tags: string[]
@@ -47,6 +49,8 @@ export type Database = {
           id?: string
           lead_type: string
           message: string
+          name?: string
+          phone?: string
           phone_target?: string
           source?: string
           tags?: string[]
@@ -56,6 +60,8 @@ export type Database = {
           id?: string
           lead_type?: string
           message?: string
+          name?: string
+          phone?: string
           phone_target?: string
           source?: string
           tags?: string[]
