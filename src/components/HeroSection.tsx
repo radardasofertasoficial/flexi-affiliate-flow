@@ -18,14 +18,13 @@ const HeroSection = ({ searchQuery, onSearchChange }: HeroSectionProps) => {
 
       <div className="container relative z-10 text-center">
         <p className="text-cta font-semibold tracking-widest uppercase text-sm mb-3 animate-fade-up">
-          As melhores ofertas da internet
+          Seu radar de ofertas ativo 24h
         </p>
         <h1 className="font-display text-4xl md:text-6xl font-bold text-primary-foreground mb-4 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-          Ofertas que você{' '}
-          <span className="text-gradient">não pode perder</span>
+          <span className="text-gradient">Radar das Ofertas</span>
         </h1>
         <p className="text-primary-foreground/70 text-lg md:text-xl max-w-2xl mx-auto mb-8 animate-fade-up" style={{ animationDelay: '0.2s' }}>
-          Produtos selecionados com os menores preços da Shopee e Mercado Livre.
+          Rastreamos os menores preços dos <span className="text-cta font-bold">maiores marketplaces do Brasil</span> para você.
           Economize até <span className="text-cta font-bold">70%</span> em milhares de produtos.
         </p>
 
@@ -43,7 +42,7 @@ const HeroSection = ({ searchQuery, onSearchChange }: HeroSectionProps) => {
         </div>
 
         <div className="flex flex-wrap justify-center gap-4 mt-8 animate-fade-up" style={{ animationDelay: '0.4s' }}>
-          {['🔥 Flash Sale', '💰 Até 70% OFF', '🚚 Frete Grátis'].map((tag) => (
+          {['📡 Preços Rastreados', '💰 Até 70% OFF', '🏪 Maiores Marketplaces'].map((tag) => (
             <span key={tag} className="bg-primary-foreground/10 backdrop-blur-sm text-primary-foreground/90 px-4 py-2 rounded-full text-sm font-medium border border-primary-foreground/10">
               {tag}
             </span>
