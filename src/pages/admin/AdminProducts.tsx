@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Star, Eye, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Star, Eye, EyeOff, Search } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -23,6 +23,8 @@ const AdminProducts = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductInsert>(emptyProduct);
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
   const fetchProducts = async () => {
@@ -98,6 +100,12 @@ const AdminProducts = () => {
   };
 
   const updateField = (key: keyof ProductInsert, value: any) => setForm(f => ({ ...f, [key]: value }));
+
+  const filteredProducts = products.filter(p => {
+    const matchCategory = selectedCategory === 'Todos' || p.category === selectedCategory;
+    const matchSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchCategory && matchSearch;
+  });
 
   return (
     <div>
@@ -189,12 +197,47 @@ const AdminProducts = () => {
         </Dialog>
       </div>
 
+      {/* Filters */}
+      <div className="mb-4 space-y-3">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {['Todos', ...categories].map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                selectedCategory === cat
+                  ? 'bg-cta text-cta-foreground shadow-cta'
+                  : 'bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Buscar produto..."
+              className="pl-9"
+            />
+          </div>
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            {filteredProducts.length === products.length
+              ? `${products.length} produtos`
+              : `${filteredProducts.length} de ${products.length} produtos`}
+          </span>
+        </div>
+      </div>
+
       {loading ? (
         <p className="text-muted-foreground">Carregando...</p>
-      ) : products.length === 0 ? (
+      ) : filteredProducts.length === 0 ? (
         <div className="text-center py-20">
-          <p className="text-muted-foreground">Nenhum produto cadastrado.</p>
-          <p className="text-sm text-muted-foreground mt-1">Clique em "Novo Produto" para começar.</p>
+          <p className="text-muted-foreground">{products.length === 0 ? 'Nenhum produto cadastrado.' : 'Nenhum produto encontrado.'}</p>
+          {products.length === 0 && <p className="text-sm text-muted-foreground mt-1">Clique em "Novo Produto" para começar.</p>}
         </div>
       ) : (
         <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -209,7 +252,7 @@ const AdminProducts = () => {
               </tr>
             </thead>
             <tbody>
-              {products.map(p => (
+              {filteredProducts.map(p => (
                 <tr key={p.id} className="border-b border-border last:border-0 hover:bg-secondary/30">
                   <td className="p-3">
                     <div className="flex items-center gap-3">
