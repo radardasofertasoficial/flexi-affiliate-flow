@@ -1,31 +1,47 @@
+## Isca Digital + Pop-up Estratégico de Captura de Leads
 
+Vamos implementar dois mecanismos de captura de leads que trabalham juntos para maximizar conversão.
 
-## Botão Flutuante de Captura de Leads via WhatsApp
+### 1. Pop-up Estratégico (após 15 segundos)
 
-Vamos transformar o botão simples do WhatsApp em um componente de captura de leads mais completo e persuasivo, com duas opções de ação para o visitante.
+Um modal que aparece automaticamente após 15 segundos de navegação, com visual impactante:
 
-### O que vai mudar
+- Icone de raio + titulo "Antes de sair!"
+- Subtitulo: "Quer receber as melhores promocoes no WhatsApp?"
+- Quatro opcoes de isca digital como botoes:
+  - "Lista das 10 melhores ofertas do mes"
+  - "Guia de compra inteligente"
+  - "Cupom exclusivo"
+  - "Alerta de promocao relampago"
+- Cada botao abre o WhatsApp com mensagem pre-preenchida correspondente
+- Botao de fechar (X) e opcao "Nao, obrigado"
+- Salva no `localStorage` que o usuario ja viu, para nao mostrar novamente na mesma sessao
 
-O ícone redondo atual será substituído por um componente expandível:
+### 2. Atualizacao do Botao Flutuante
 
-- **Estado fechado**: Ícone do WhatsApp com um badge pulsante (indicando novidade/atenção)
-- **Estado aberto (ao clicar)**: Um card flutuante com duas opções:
-  1. **"Receba ofertas exclusivas no WhatsApp"** - Abre conversa com mensagem pré-definida tipo "Quero receber ofertas exclusivas!"
-  2. **"Peça recomendação personalizada"** - Abre conversa com mensagem "Quero uma recomendação personalizada de produto!"
-- **Botão de fechar** para recolher o card
+O `WhatsAppFloat` existente sera atualizado para incluir as mesmas iscas digitais no card expandido, substituindo as opcoes atuais por:
 
-### Detalhes visuais
+- "Lista das 10 melhores ofertas"
+- "Entre para Radas das Ofertas" 
+- "Cupom exclusivo"
+- "Alerta de promocao relampago"
 
-- Card com fundo escuro (seguindo o tema do site) e bordas arredondadas
-- Título "Fale conosco no WhatsApp" no topo do card
-- Cada opção será um botão verde do WhatsApp com texto claro
-- Animação suave de entrada/saída do card
-- Badge pulsante vermelho no ícone para chamar atenção
+### Detalhes tecnicos
 
-### Detalhes técnicos
+**Arquivos envolvidos:**
 
-- Arquivo modificado: `src/components/WhatsAppFloat.tsx`
-- Uso de estado React (`useState`) para controlar aberto/fechado
-- Links `wa.me` com parâmetro `text=` para mensagens pré-preenchidas
-- Animações via classes Tailwind CSS
-- Nenhuma dependência nova necessária
+- `src/components/LeadCapturePopup.tsx` (novo) - Modal com timer de 15s e iscas digitais
+- `src/components/WhatsAppFloat.tsx` (atualizado) - Novas opcoes de isca no card
+- `src/App.tsx` (atualizado) - Incluir o novo componente LeadCapturePopup
+- `tailwind.config.ts` (atualizado) - Adicionar animacao `fade-up` e `pulse-badge` se necessario
+
+**Logica do pop-up:**
+
+- `useEffect` com `setTimeout` de 15 segundos
+- Verificacao de `localStorage` para nao repetir na sessao
+- Exibido apenas na pagina publica (nao no admin)
+- Usa o componente Dialog do shadcn/ui para o modal
+
+**Sem dependencias novas** - tudo com React, Tailwind e componentes existentes.
+
+Todos os leads, eu quero que esteja no painel do admin, para eu visualizar depois, e exportar, deixar guardado no banco de dados, mas que eu consiga, exporta para um excel
