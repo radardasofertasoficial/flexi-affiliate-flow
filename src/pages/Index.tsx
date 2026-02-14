@@ -1,12 +1,36 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useMemo } from 'react';
+import SiteHeader from '@/components/SiteHeader';
+import HeroSection from '@/components/HeroSection';
+import CategoryBar from '@/components/CategoryBar';
+import ProductGrid from '@/components/ProductGrid';
+import SiteFooter from '@/components/SiteFooter';
+import { products } from '@/data/products';
 
 const Index = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
+
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      const matchesCategory = selectedCategory === 'Todos' || p.category === selectedCategory;
+      const matchesSearch =
+        !searchQuery ||
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.category.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [searchQuery, selectedCategory]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen flex flex-col bg-background">
+      <SiteHeader />
+      <HeroSection searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      <CategoryBar selected={selectedCategory} onSelect={setSelectedCategory} />
+      <main className="flex-1">
+        <ProductGrid products={filtered} />
+      </main>
+      <SiteFooter />
     </div>
   );
 };
