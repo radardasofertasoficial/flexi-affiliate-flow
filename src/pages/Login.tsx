@@ -11,19 +11,26 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const { error } = await signIn(email, password);
+    const { error } = isSignUp ? await signUp(email, password) : await signIn(email, password);
     setIsLoading(false);
     if (error) {
-      toast({ title: 'Erro ao entrar', description: error.message, variant: 'destructive' });
+      toast({ title: isSignUp ? 'Erro ao cadastrar' : 'Erro ao entrar', description: error.message, variant: 'destructive' });
     } else {
-      navigate('/admin');
+      if (isSignUp) {
+        toast({ title: 'Conta criada!', description: 'Agora faça login.' });
+        setIsSignUp(false);
+      } else {
+        navigate('/admin');
+      }
     }
   };
 
@@ -34,7 +41,7 @@ const Login = () => {
           <Flame className="w-8 h-8 text-cta" />
           <span className="font-display font-bold text-2xl text-card-foreground">OfertaMax</span>
         </div>
-        <h1 className="font-display text-xl text-center text-card-foreground mb-6">Painel Administrativo</h1>
+        <h1 className="font-display text-xl text-center text-card-foreground mb-6">{isSignUp ? 'Criar Conta' : 'Painel Administrativo'}</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -46,10 +53,16 @@ const Login = () => {
           </div>
           <Button type="submit" className="w-full bg-cta hover:bg-cta-hover text-cta-foreground" disabled={isLoading}>
             <LogIn className="w-4 h-4 mr-2" />
-            {isLoading ? 'Entrando...' : 'Entrar'}
+            {isLoading ? (isSignUp ? 'Cadastrando...' : 'Entrando...') : (isSignUp ? 'Cadastrar' : 'Entrar')}
           </Button>
         </form>
-        <p className="text-center text-xs text-muted-foreground mt-6">
+        <p className="text-center text-sm text-muted-foreground mt-4">
+          {isSignUp ? 'Já tem conta?' : 'Não tem conta?'}{' '}
+          <button onClick={() => setIsSignUp(!isSignUp)} className="text-cta hover:underline font-medium">
+            {isSignUp ? 'Fazer login' : 'Cadastre-se'}
+          </button>
+        </p>
+        <p className="text-center text-xs text-muted-foreground mt-4">
           <a href="/" className="hover:text-foreground transition-colors">← Voltar para a loja</a>
         </p>
       </div>
