@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { Radar, ArrowRight, Send } from 'lucide-react';
 import { useLeadModalConfig } from '@/hooks/useLeadModalConfig';
+import { trackLead } from '@/lib/tracking';
 
 const LEAD_REGISTERED_KEY = 'lead_registered';
 
@@ -74,6 +75,7 @@ const LeadCaptureModal = ({ open, onOpenChange, source, onSuccess }: LeadCapture
     } catch (_) {}
 
     localStorage.setItem(LEAD_REGISTERED_KEY, 'true');
+    trackLead({ leadType: selectedOption.type, tags: selectedTags, source });
     setSubmitting(false);
     if (onSuccess) { onSuccess(); } else { window.open(whatsappLink, '_blank', 'noopener,noreferrer'); }
     onOpenChange(false);

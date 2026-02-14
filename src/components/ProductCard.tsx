@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Product } from '@/types/database';
 import LeadCaptureModal, { isLeadRegistered } from '@/components/LeadCaptureModal';
 import { useActivePlatforms } from '@/hooks/usePlatforms';
+import { trackClickCTA } from '@/lib/tracking';
 
 interface ProductCardProps {
   product: Product;
@@ -27,6 +28,12 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
       referrer: document.referrer || null,
       user_agent: navigator.userAgent,
     } as any).then(() => {});
+    trackClickCTA({
+      title: product.title,
+      store: product.store,
+      category: product.category,
+      price: product.price,
+    });
     window.open(product.affiliate_url, '_blank', 'noopener,noreferrer');
   };
 

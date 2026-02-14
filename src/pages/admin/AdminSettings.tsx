@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings, Plus, Trash2, Save, Loader2, Pencil, Store, Tag } from 'lucide-react';
+import { Settings, Plus, Trash2, Save, Loader2, Pencil, Store, Tag, BarChart3 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
@@ -31,6 +31,8 @@ const AdminSettings = () => {
   const [editingBadgeText, setEditingBadgeText] = useState('');
   const [whatsappLink, setWhatsappLink] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [metaPixelId, setMetaPixelId] = useState('');
+  const [ga4MeasurementId, setGa4MeasurementId] = useState('');
 
   // Platform form state
   const [editingPlatform, setEditingPlatform] = useState<Platform | null>(null);
@@ -51,6 +53,8 @@ const AdminSettings = () => {
       setBadges(config.badges || []);
       setWhatsappLink(config.whatsapp_group_link);
       setWhatsappNumber(config.whatsapp_number);
+      setMetaPixelId(config.meta_pixel_id || '');
+      setGa4MeasurementId(config.ga4_measurement_id || '');
     }
   }, [config]);
 
@@ -66,6 +70,8 @@ const AdminSettings = () => {
         badges,
         whatsapp_group_link: whatsappLink,
         whatsapp_number: whatsappNumber,
+        meta_pixel_id: metaPixelId,
+        ga4_measurement_id: ga4MeasurementId,
       });
       toast.success('Configurações salvas!');
     } catch {
@@ -257,7 +263,28 @@ const AdminSettings = () => {
         </CardContent>
       </Card>
 
-      {/* WhatsApp */}
+      {/* Rastreamento */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-cta" />
+            <CardTitle className="text-base">Rastreamento (Pixel & Analytics)</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Meta Pixel ID</Label>
+            <Input value={metaPixelId} onChange={e => setMetaPixelId(e.target.value)} placeholder="Ex: 123456789012345" className="mt-1" />
+            <p className="text-xs text-muted-foreground mt-1">Encontre em business.facebook.com → Eventos → Pixel da Meta</p>
+          </div>
+          <div>
+            <Label>Google Analytics 4 - Measurement ID</Label>
+            <Input value={ga4MeasurementId} onChange={e => setGa4MeasurementId(e.target.value)} placeholder="Ex: G-XXXXXXXXXX" className="mt-1" />
+            <p className="text-xs text-muted-foreground mt-1">Encontre em analytics.google.com → Administração → Fluxos de dados</p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader><CardTitle className="text-base">WhatsApp</CardTitle></CardHeader>
         <CardContent className="space-y-4">
