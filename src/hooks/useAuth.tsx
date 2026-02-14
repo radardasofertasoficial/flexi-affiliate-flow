@@ -19,51 +19,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
 
-  const checkAdmin = async (userId: string) => {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'admin')
-      .maybeSingle();
-    return !!data;
-  };
-
+  // Listen to auth state changes - NO async calls here
   useEffect(() => {
-    let mounted = true;
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!mounted) return;
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        if (session?.user) {
-          const admin = await checkAdmin(session.user.id);
-          if (mounted) setIsAdmin(admin);
-        } else {
+        if (!session?.user) {
           setIsAdmin(false);
         }
-        if (mounted) setLoading(false);
+        setAuthReady(true);
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        const admin = await checkAdmin(session.user.id);
-        if (mounted) setIsAdmin(admin);
-      }
-      if (mounted) setLoading(false);
+      setAuthReady(true);
     });
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Check admin role separately when user changes
+  useEffect(() => {
+    if (!authReady) return;
+
+    if (!user) {
+      setIsAdmin(false);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) {
+          setIsAdmin(!!data);
+          setLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [user, authReady]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
