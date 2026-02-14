@@ -75,9 +75,9 @@ const LeadCaptureModal = ({ open, onOpenChange, source, onSuccess }: LeadCapture
 
     localStorage.setItem(LEAD_REGISTERED_KEY, 'true');
     setSubmitting(false);
+    if (onSuccess) { onSuccess(); } else { window.open(whatsappLink, '_blank', 'noopener,noreferrer'); }
     onOpenChange(false);
     resetState();
-    if (onSuccess) { onSuccess(); } else { window.open(whatsappLink, '_blank', 'noopener,noreferrer'); }
   };
 
   const resetState = () => {
