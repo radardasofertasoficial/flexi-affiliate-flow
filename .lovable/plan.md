@@ -1,32 +1,58 @@
+## Melhorar a Pagina de Relatorios
 
-## Corrigir fluxo do modal: redirecionar automaticamente apos cadastro
+### O que vai mudar
 
-### Problema
-Quando o usuario clica em "ENTRAR NO RADAR" no modal, a funcao `handleSubmit` chama `onOpenChange(false)` primeiro. Isso dispara o callback do ProductCard que limpa o `pendingAction` para `null`. Quando `onSuccess` e chamado logo depois, o `pendingAction` ja esta vazio e nenhuma acao acontece -- o usuario fica preso sem ser redirecionado.
+A pagina de relatorios sera reestruturada com as seguintes secoes, de cima para baixo:
 
-### Solucao
-Inverter a ordem no `handleSubmit`: chamar `onSuccess` **antes** de fechar o modal com `onOpenChange(false)`. Assim a acao pendente (abrir a oferta, enviar WhatsApp) executa primeiro enquanto o `pendingAction` ainda existe, e so depois o modal fecha.
+**1. Cabecalho com Filtro de Data**
 
-### Mudancas
+- Seletor de periodo com data inicial e data final (usando DatePicker com calendario)
+- Inicia mostrando o dia de hoje como padrao
+- Botao para aplicar o filtro
 
-**Arquivo: `src/components/LeadCaptureModal.tsx`** (linhas 76-80)
+**2. Cards de Resumo (ja existentes)**
 
-Alterar a ordem de:
-```
-localStorage.setItem(LEAD_REGISTERED_KEY, 'true');
-setSubmitting(false);
-onOpenChange(false);
-resetState();
-if (onSuccess) { onSuccess(); } else { ... }
-```
+- Total de Cliques (filtrado pelo periodo)
+- Produtos com Cliques
+- Media por Produto
+- mais clicado
 
-Para:
-```
-localStorage.setItem(LEAD_REGISTERED_KEY, 'true');
-setSubmitting(false);
-if (onSuccess) { onSuccess(); } else { window.open(whatsappLink, '_blank', 'noopener,noreferrer'); }
-onOpenChange(false);
-resetState();
-```
+**3. Categoria Mais Clicada**
 
-Isso garante que a acao de redirecionamento executa antes do modal fechar e antes do `pendingAction` ser limpo.
+- Card destacado mostrando qual categoria teve mais cliques no periodo selecionado, com o numero de cliques
+
+**4. Top 5 Mais Clicados**
+
+- Secao com cards ou lista destacada dos 5 produtos mais clicados
+- Cada item mostra: miniatura da imagem do produto, titulo, categoria e numero de cliques
+
+**5. Demais Produtos Clicados**
+
+- Tabela com todos os outros produtos que tiveram cliques (a partir do 6o)
+- Cada linha mostra: miniatura da imagem, titulo, categoria e cliques
+
+### Detalhes Tecnicos
+
+**Arquivo: `src/pages/admin/AdminReports.tsx**` (reescrita completa)
+
+- Adicionar estados `dateFrom` e `dateTo` para o filtro de periodo
+- Usar componente DatePicker (Popover + Calendar do shadcn) para selecao de datas
+- Alterar a query do `product_clicks` para filtrar por `clicked_at` entre as datas selecionadas:
+  ```
+  .gte('clicked_at', dateFrom)
+  .lte('clicked_at', dateTo)
+  ```
+- Buscar produtos com `id, title, image, category` (em vez de apenas `id, title`)
+- Agrupar cliques por categoria para calcular a categoria mais clicada
+- Separar o array de resultados em `top5` (primeiros 5) e `rest` (demais)
+- Renderizar imagens com tamanho `w-10 h-10 rounded object-cover` (mesmo estilo da tabela de produtos)
+
+**Componentes utilizados (ja disponiveis no projeto):**
+
+- `Calendar` de `@/components/ui/calendar`
+- `Popover` / `PopoverTrigger` / `PopoverContent` de `@/components/ui/popover`
+- `Button` de `@/components/ui/button`
+- `format` de `date-fns` para formatar datas
+- Icones do `lucide-react`
+
+Nenhuma migracao de banco e necessaria -- os dados de imagem e categoria ja existem na tabela `products`.
