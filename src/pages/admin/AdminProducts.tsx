@@ -61,6 +61,11 @@ const AdminProducts = () => {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
       return;
     }
+    const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+    if (imageExts.some(ext => form.affiliate_url.toLowerCase().endsWith(ext))) {
+      toast({ title: 'Link inválido', description: 'O link de afiliado parece ser uma URL de imagem. Use o link da página do produto.', variant: 'destructive' });
+      return;
+    }
     if (editing) {
       const { error } = await supabase.from('products').update(form as any).eq('id', editing.id);
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
