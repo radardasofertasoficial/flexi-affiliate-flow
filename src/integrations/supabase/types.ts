@@ -35,7 +35,9 @@ export type Database = {
       lead_modal_config: {
         Row: {
           badges: Json
+          ga4_measurement_id: string
           id: string
+          meta_pixel_id: string
           options: Json
           step1_description: string
           step1_title: string
@@ -48,7 +50,9 @@ export type Database = {
         }
         Insert: {
           badges?: Json
+          ga4_measurement_id?: string
           id?: string
+          meta_pixel_id?: string
           options?: Json
           step1_description?: string
           step1_title?: string
@@ -61,7 +65,9 @@ export type Database = {
         }
         Update: {
           badges?: Json
+          ga4_measurement_id?: string
           id?: string
+          meta_pixel_id?: string
           options?: Json
           step1_description?: string
           step1_title?: string

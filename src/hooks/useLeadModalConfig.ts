@@ -23,6 +23,8 @@ export interface LeadModalConfig {
   badges: BadgeOption[];
   whatsapp_group_link: string;
   whatsapp_number: string;
+  meta_pixel_id: string;
+  ga4_measurement_id: string;
   updated_at: string;
 }
 
@@ -41,6 +43,8 @@ const DEFAULTS: Omit<LeadModalConfig, 'id' | 'updated_at'> = {
   badges: [],
   whatsapp_group_link: 'https://chat.whatsapp.com/GRUPO_PLACEHOLDER',
   whatsapp_number: '5515981184423',
+  meta_pixel_id: '',
+  ga4_measurement_id: '',
 };
 
 export function useLeadModalConfig() {

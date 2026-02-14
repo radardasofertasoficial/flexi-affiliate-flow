@@ -17,6 +17,7 @@ import WhatsAppFloat from "./components/WhatsAppFloat";
 import LeadCapturePopup from "./components/LeadCapturePopup";
 import AdminLeads from "./pages/admin/AdminLeads";
 import AdminSettings from "./pages/admin/AdminSettings";
+import TrackingScripts from "./components/TrackingScripts";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
           </Routes>
           <WhatsAppFloat />
           <LeadCapturePopup />
+          <TrackingScripts />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
