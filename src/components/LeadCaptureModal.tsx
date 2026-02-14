@@ -1,0 +1,248 @@
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
+import { Radar, ArrowRight, Send } from 'lucide-react';
+
+const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/GRUPO_PLACEHOLDER';
+const LEAD_REGISTERED_KEY = 'lead_registered';
+
+const interestTags = [
+  'Roupas', 'Eletrônicos', 'Ferramentas',
+  'Casa e Decoração', 'Beleza e Saúde', 'Esportes', 'Outros'
+];
+
+const leadOptions = [
+  { label: '📋 Lista das 10 melhores ofertas do mês', type: 'top10_ofertas' },
+  { label: '🔥 Radar das Ofertas', type: 'radar_ofertas' },
+  { label: '🎟️ Cupom exclusivo', type: 'cupom_exclusivo' },
+  { label: '⚡ Alerta de promoção relâmpago', type: 'alerta_promo' },
+];
+
+export function isLeadRegistered(): boolean {
+  return localStorage.getItem(LEAD_REGISTERED_KEY) === 'true';
+}
+
+interface LeadCaptureModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  source: string;
+  /** If provided, called after successful registration instead of default redirect */
+  onSuccess?: () => void;
+}
+
+const formatPhone = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits.length ? `(${digits}` : '';
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
+const extractDigits = (masked: string): string => masked.replace(/\D/g, '');
+
+const LeadCaptureModal = ({ open, onOpenChange, source, onSuccess }: LeadCaptureModalProps) => {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [selectedOption, setSelectedOption] = useState<typeof leadOptions[0] | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  const validateStep1 = (): boolean => {
+    let valid = true;
+    if (name.trim().length < 2) {
+      setNameError('Nome deve ter pelo menos 2 caracteres');
+      valid = false;
+    } else {
+      setNameError('');
+    }
+    const digits = extractDigits(phone);
+    if (digits.length < 10 || digits.length > 11) {
+      setPhoneError('WhatsApp inválido. Use (99) 99999-9999');
+      valid = false;
+    } else {
+      setPhoneError('');
+    }
+    return valid;
+  };
+
+  const handleContinue = () => {
+    if (validateStep1()) setStep(2);
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedOption) return;
+    setSubmitting(true);
+
+    const digits = extractDigits(phone);
+    const message = selectedTags.length > 0
+      ? `${selectedOption.label} | Interesses: ${selectedTags.join(', ')}`
+      : selectedOption.label;
+
+    try {
+      await (supabase.from('leads') as any).insert({
+        name: name.trim(),
+        phone: digits,
+        lead_type: selectedOption.type,
+        message,
+        source,
+        tags: selectedTags,
+      });
+    } catch (_) {}
+
+    localStorage.setItem(LEAD_REGISTERED_KEY, 'true');
+    setSubmitting(false);
+    onOpenChange(false);
+    resetState();
+
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      window.open(WHATSAPP_GROUP_LINK, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const resetState = () => {
+    setStep(1);
+    setName('');
+    setPhone('');
+    setNameError('');
+    setPhoneError('');
+    setSelectedOption(null);
+    setSelectedTags([]);
+  };
+
+  const handleOpenChange = (val: boolean) => {
+    onOpenChange(val);
+    if (!val) resetState();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        {step === 1 ? (
+          <>
+            <DialogHeader className="text-center items-center">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center mb-2 mx-auto" style={{ backgroundColor: '#FFC300' }}>
+                <Radar className="w-7 h-7" style={{ color: '#0D1B2A' }} />
+              </div>
+              <DialogTitle className="font-display text-xl">Entre para o Radar das Ofertas</DialogTitle>
+              <DialogDescription className="text-base">
+                Preencha seus dados para receber as melhores promoções.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex flex-col gap-4 mt-3">
+              <div>
+                <Label htmlFor="lead-name" className="text-sm font-medium">Nome</Label>
+                <Input
+                  id="lead-name"
+                  placeholder="Seu nome"
+                  value={name}
+                  onChange={e => { setName(e.target.value); setNameError(''); }}
+                  className="mt-1"
+                  maxLength={100}
+                />
+                {nameError && <p className="text-destructive text-xs mt-1">{nameError}</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="lead-phone" className="text-sm font-medium">WhatsApp</Label>
+                <Input
+                  id="lead-phone"
+                  placeholder="(99) 99999-9999"
+                  value={phone}
+                  onChange={e => { setPhone(formatPhone(e.target.value)); setPhoneError(''); }}
+                  className="mt-1"
+                  type="tel"
+                  maxLength={16}
+                />
+                {phoneError && <p className="text-destructive text-xs mt-1">{phoneError}</p>}
+              </div>
+
+              <Button
+                onClick={handleContinue}
+                className="w-full font-bold text-base py-5"
+                style={{ backgroundColor: '#FFC300', color: '#0D1B2A' }}
+              >
+                CONTINUAR
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <DialogHeader className="text-center items-center">
+              <DialogTitle className="font-display text-lg">O que te interessa?</DialogTitle>
+              <DialogDescription className="text-sm">
+                Escolha uma opção e selecione categorias se quiser.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex flex-col gap-2 mt-2">
+              {leadOptions.map((opt) => (
+                <button
+                  key={opt.type}
+                  onClick={() => setSelectedOption(opt)}
+                  className={`text-left text-sm font-medium rounded-lg px-4 py-3 transition-colors border ${
+                    selectedOption?.type === opt.type
+                      ? 'border-[#FFC300] bg-[#FFC300]/10 text-foreground'
+                      : 'border-border bg-secondary text-secondary-foreground hover:border-[#FFC300]/50'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-3 justify-center">
+              {interestTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    selectedTags.includes(tag)
+                      ? 'bg-[#FFC300] text-[#0D1B2A] border-[#FFC300]'
+                      : 'bg-secondary text-secondary-foreground border-border hover:border-[#FFC300]/50'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-2 mt-4">
+              <Button
+                onClick={handleSubmit}
+                disabled={!selectedOption || submitting}
+                className="w-full font-bold text-base py-5"
+                style={{ backgroundColor: '#FFC300', color: '#0D1B2A' }}
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {submitting ? 'Salvando...' : 'ENTRAR NO RADAR'}
+              </Button>
+              <button
+                onClick={() => setStep(1)}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto"
+              >
+                ← Voltar
+              </button>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default LeadCaptureModal;
