@@ -9,7 +9,7 @@ const SiteHeader = () => {
           <img src={logo} alt="Radar das Ofertas" className="h-16 sm:h-20 w-auto" />
         </a>
         <div className="flex items-center gap-4 text-sm">
-          <a href="#" className="hidden sm:block text-muted-foreground hover:text-foreground transition-colors">
+          <a href="/como-funciona" className="hidden sm:block text-muted-foreground hover:text-foreground transition-colors">
             Como Funciona
           </a>
           <a href="#" className="flex items-center gap-1 bg-cta text-cta-foreground px-4 py-2 rounded-lg font-semibold hover:bg-cta-hover transition-colors text-sm">
