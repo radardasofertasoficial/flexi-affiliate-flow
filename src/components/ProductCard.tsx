@@ -1,4 +1,4 @@
-import { Star, ExternalLink } from 'lucide-react';
+import { Star, ExternalLink, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Product } from '@/types/database';
 
@@ -13,7 +13,6 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
     : 0;
 
   const handleClick = async () => {
-    // Log click to database
     supabase.from('product_clicks').insert({
       product_id: product.id,
       referrer: document.referrer || null,
@@ -21,6 +20,18 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
     } as any).then(() => {});
 
     window.open(product.affiliate_url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleWhatsApp = (leadType: string, message: string) => {
+    supabase.from('leads').insert({
+      lead_type: leadType,
+      message,
+      source: 'product_card',
+      tags: [],
+    } as any).then(() => {});
+
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/5515981184423?text=${encoded}`, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -106,6 +117,23 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
           Ver Oferta
           <ExternalLink className="w-4 h-4" />
         </button>
+
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <button
+            onClick={() => handleWhatsApp('produto_vale_pena', `Olá! Vi o produto ${product.title} no site e quero saber se vale a pena.`)}
+            className="flex items-center justify-center gap-1 bg-[#25D366] hover:bg-[#1da851] text-white text-[11px] font-medium py-2 px-1 rounded-lg transition-colors"
+          >
+            <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Vale a pena?</span>
+          </button>
+          <button
+            onClick={() => handleWhatsApp('produto_pergunta', `Olá! Vi o produto ${product.title} no site e quero mais informações.`)}
+            className="flex items-center justify-center gap-1 bg-[#25D366] hover:bg-[#1da851] text-white text-[11px] font-medium py-2 px-1 rounded-lg transition-colors"
+          >
+            <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Perguntar</span>
+          </button>
+        </div>
       </div>
     </div>
   );
