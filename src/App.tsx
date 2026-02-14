@@ -13,6 +13,8 @@ import AdminCategories from "./pages/admin/AdminCategories";
 import AdminUsers from "./pages/admin/AdminUsers";
 import NotFound from "./pages/NotFound";
 import WhatsAppFloat from "./components/WhatsAppFloat";
+import LeadCapturePopup from "./components/LeadCapturePopup";
+import AdminLeads from "./pages/admin/AdminLeads";
 
 const queryClient = new QueryClient();
 
@@ -30,11 +32,13 @@ const App = () => (
               <Route index element={<AdminProducts />} />
               <Route path="categories" element={<AdminCategories />} />
               <Route path="reports" element={<AdminReports />} />
+              <Route path="leads" element={<AdminLeads />} />
               <Route path="users" element={<AdminUsers />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
           <WhatsAppFloat />
+          <LeadCapturePopup />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
