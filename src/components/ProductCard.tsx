@@ -88,7 +88,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
           </span>
         )}
 
-        <div className="relative overflow-hidden aspect-square bg-secondary">
+        <div className="relative overflow-hidden aspect-square bg-secondary cursor-pointer" onClick={handleOfferClick}>
           <img
             src={product.image || '/placeholder.svg'}
             alt={product.title}
@@ -111,10 +111,10 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
         </div>
 
         <div className="p-4 flex flex-col flex-1">
-          <h3 className="font-display font-semibold text-card-foreground text-sm leading-tight mb-1 line-clamp-2">
+          <h3 className="font-display font-semibold text-card-foreground text-sm leading-tight mb-1 line-clamp-2 cursor-pointer hover:text-cta transition-colors" onClick={handleOfferClick}>
             {product.title}
           </h3>
-          <p className="text-muted-foreground text-xs mb-3 line-clamp-1">
+          <p className="text-muted-foreground text-xs mb-3 line-clamp-1 cursor-pointer" onClick={handleOfferClick}>
             {product.description}
           </p>
 
