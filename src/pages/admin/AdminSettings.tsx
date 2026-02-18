@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings, Plus, Trash2, Save, Loader2, Pencil, Store, Tag, BarChart3 } from 'lucide-react';
+import { Settings, Plus, Trash2, Save, Loader2, Pencil, Store, Tag, BarChart3, Image, Upload } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminSettings = () => {
   const { data: config, isLoading } = useLeadModalConfig();
@@ -33,7 +34,13 @@ const AdminSettings = () => {
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [metaPixelId, setMetaPixelId] = useState('');
   const [ga4MeasurementId, setGa4MeasurementId] = useState('');
-
+  const [heroSubtitle, setHeroSubtitle] = useState('');
+  const [heroTitle, setHeroTitle] = useState('');
+  const [heroDescription, setHeroDescription] = useState('');
+  const [heroTags, setHeroTags] = useState<string[]>([]);
+  const [newHeroTag, setNewHeroTag] = useState('');
+  const [heroBannerUrl, setHeroBannerUrl] = useState('');
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   // Platform form state
   const [editingPlatform, setEditingPlatform] = useState<Platform | null>(null);
   const [pfName, setPfName] = useState('');
@@ -55,6 +62,11 @@ const AdminSettings = () => {
       setWhatsappNumber(config.whatsapp_number);
       setMetaPixelId(config.meta_pixel_id || '');
       setGa4MeasurementId(config.ga4_measurement_id || '');
+      setHeroSubtitle(config.hero_subtitle || '');
+      setHeroTitle(config.hero_title || '');
+      setHeroDescription(config.hero_description || '');
+      setHeroTags(config.hero_tags || []);
+      setHeroBannerUrl(config.hero_banner_url || '');
     }
   }, [config]);
 
@@ -72,6 +84,11 @@ const AdminSettings = () => {
         whatsapp_number: whatsappNumber,
         meta_pixel_id: metaPixelId,
         ga4_measurement_id: ga4MeasurementId,
+        hero_subtitle: heroSubtitle,
+        hero_title: heroTitle,
+        hero_description: heroDescription,
+        hero_tags: heroTags,
+        hero_banner_url: heroBannerUrl,
       });
       toast.success('Configurações salvas!');
     } catch {
@@ -97,6 +114,40 @@ const AdminSettings = () => {
     }
   };
   const removeTag = (tag: string) => setTags(prev => prev.filter(t => t !== tag));
+
+  // Hero tag helpers
+  const addHeroTag = () => {
+    const t = newHeroTag.trim();
+    if (t && !heroTags.includes(t)) {
+      setHeroTags(prev => [...prev, t]);
+      setNewHeroTag('');
+    }
+  };
+  const removeHeroTag = (tag: string) => setHeroTags(prev => prev.filter(t => t !== tag));
+
+  // Banner upload
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+      toast.error('Apenas JPG, JPEG ou PNG são aceitos');
+      return;
+    }
+    setUploadingBanner(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `hero-banner-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('product-images').upload(path, file);
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+      setHeroBannerUrl(urlData.publicUrl);
+      toast.success('Imagem carregada! Clique em Salvar para confirmar.');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao fazer upload');
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
 
   const addBadge = () => {
     const b = newBadge.trim();
@@ -260,6 +311,66 @@ const AdminSettings = () => {
               )}
             </>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Banner da Página Inicial */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Image className="w-4 h-4 text-cta" />
+            <CardTitle className="text-base">Banner da Página Inicial</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Subtítulo (linha acima do título)</Label>
+            <Input value={heroSubtitle} onChange={e => setHeroSubtitle(e.target.value)} placeholder="Ex: Seu radar de ofertas ativo 24h" className="mt-1" />
+          </div>
+          <div>
+            <Label>Título principal</Label>
+            <Input value={heroTitle} onChange={e => setHeroTitle(e.target.value)} placeholder="Ex: Radar das Ofertas" className="mt-1" />
+          </div>
+          <div>
+            <Label>Descrição</Label>
+            <Textarea value={heroDescription} onChange={e => setHeroDescription(e.target.value)} placeholder="Texto descritivo abaixo do título..." className="mt-1" rows={3} />
+          </div>
+          <div>
+            <Label>Tags / Chips do Banner</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {heroTags.map(tag => (
+                <span key={tag} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground border border-border">
+                  {tag}
+                  <button onClick={() => removeHeroTag(tag)} className="text-destructive hover:text-destructive/80"><Trash2 className="w-3 h-3" /></button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <Input value={newHeroTag} onChange={e => setNewHeroTag(e.target.value)} placeholder="Novo chip..." onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addHeroTag())} />
+              <Button size="sm" variant="outline" onClick={addHeroTag}><Plus className="w-3 h-3 mr-1" /> Add</Button>
+            </div>
+          </div>
+          <div>
+            <Label>Imagem de Fundo do Banner</Label>
+            <p className="text-xs text-muted-foreground mt-1 mb-2">Tamanho recomendado: <strong>1920×600px</strong> (JPG, JPEG ou PNG)</p>
+            <div className="flex items-center gap-3">
+              <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md border border-border bg-secondary text-sm font-medium hover:bg-secondary/80 transition-colors">
+                <Upload className="w-4 h-4" />
+                {uploadingBanner ? 'Enviando...' : 'Escolher imagem'}
+                <input type="file" accept="image/jpeg,image/jpg,image/png" className="hidden" onChange={handleBannerUpload} disabled={uploadingBanner} />
+              </label>
+              {heroBannerUrl && (
+                <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setHeroBannerUrl('')}>
+                  <Trash2 className="w-3 h-3 mr-1" /> Remover
+                </Button>
+              )}
+            </div>
+            {heroBannerUrl && (
+              <div className="mt-3 rounded-lg overflow-hidden border border-border">
+                <img src={heroBannerUrl} alt="Preview do banner" className="w-full h-auto max-h-48 object-cover" />
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

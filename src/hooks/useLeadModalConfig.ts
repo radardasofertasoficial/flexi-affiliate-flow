@@ -25,6 +25,11 @@ export interface LeadModalConfig {
   whatsapp_number: string;
   meta_pixel_id: string;
   ga4_measurement_id: string;
+  hero_subtitle: string;
+  hero_title: string;
+  hero_description: string;
+  hero_tags: string[];
+  hero_banner_url: string;
   updated_at: string;
 }
 
@@ -45,6 +50,11 @@ const DEFAULTS: Omit<LeadModalConfig, 'id' | 'updated_at'> = {
   whatsapp_number: '5515981184423',
   meta_pixel_id: '',
   ga4_measurement_id: '',
+  hero_subtitle: 'Seu radar de ofertas ativo 24h',
+  hero_title: 'Radar das Ofertas',
+  hero_description: 'Rastreamos os menores precos dos maiores marketplaces do Brasil para voce. Economize ate 70% em milhares de produtos.',
+  hero_tags: ['📡 Preços Rastreados', '💰 Até 70% OFF', '🏪 Maiores Marketplaces'],
+  hero_banner_url: '',
 };
 
 export function useLeadModalConfig() {
