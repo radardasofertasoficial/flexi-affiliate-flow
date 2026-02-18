@@ -36,6 +36,11 @@ export type Database = {
         Row: {
           badges: Json
           ga4_measurement_id: string
+          hero_banner_url: string
+          hero_description: string
+          hero_subtitle: string
+          hero_tags: Json
+          hero_title: string
           id: string
           meta_pixel_id: string
           options: Json
@@ -51,6 +56,11 @@ export type Database = {
         Insert: {
           badges?: Json
           ga4_measurement_id?: string
+          hero_banner_url?: string
+          hero_description?: string
+          hero_subtitle?: string
+          hero_tags?: Json
+          hero_title?: string
           id?: string
           meta_pixel_id?: string
           options?: Json
@@ -66,6 +76,11 @@ export type Database = {
         Update: {
           badges?: Json
           ga4_measurement_id?: string
+          hero_banner_url?: string
+          hero_description?: string
+          hero_subtitle?: string
+          hero_tags?: Json
+          hero_title?: string
           id?: string
           meta_pixel_id?: string
           options?: Json

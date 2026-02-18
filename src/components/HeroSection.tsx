@@ -1,5 +1,6 @@
 import heroBanner from '@/assets/hero-banner.jpg';
 import { Search } from 'lucide-react';
+import { useLeadModalConfig } from '@/hooks/useLeadModalConfig';
 
 interface HeroSectionProps {
   searchQuery: string;
@@ -7,10 +8,18 @@ interface HeroSectionProps {
 }
 
 const HeroSection = ({ searchQuery, onSearchChange }: HeroSectionProps) => {
+  const { data: config } = useLeadModalConfig();
+
+  const subtitle = config?.hero_subtitle || 'Seu radar de ofertas ativo 24h';
+  const title = config?.hero_title || 'Radar das Ofertas';
+  const description = config?.hero_description || 'Rastreamos os menores preços dos maiores marketplaces do Brasil para você. Economize até 70% em milhares de produtos.';
+  const tags = config?.hero_tags || ['📡 Preços Rastreados', '💰 Até 70% OFF', '🏪 Maiores Marketplaces'];
+  const bannerUrl = config?.hero_banner_url || '';
+
   return (
     <section className="relative overflow-hidden bg-hero py-16 md:py-24">
       <img
-        src={heroBanner}
+        src={bannerUrl || heroBanner}
         alt=""
         className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-soft-light"
       />
@@ -18,14 +27,13 @@ const HeroSection = ({ searchQuery, onSearchChange }: HeroSectionProps) => {
 
       <div className="container relative z-10 text-center">
         <p className="text-cta font-semibold tracking-widest uppercase text-sm mb-3 animate-fade-up">
-          Seu radar de ofertas ativo 24h
+          {subtitle}
         </p>
         <h1 className="font-display text-4xl md:text-6xl font-bold text-primary-foreground mb-4 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-          <span className="text-gradient">Radar das Ofertas</span>
+          <span className="text-gradient">{title}</span>
         </h1>
         <p className="text-primary-foreground/70 text-lg md:text-xl max-w-2xl mx-auto mb-8 animate-fade-up" style={{ animationDelay: '0.2s' }}>
-          Rastreamos os menores preços dos <span className="text-cta font-bold">maiores marketplaces do Brasil</span> para você.
-          Economize até <span className="text-cta font-bold">70%</span> em milhares de produtos.
+          {description}
         </p>
 
         <div className="max-w-xl mx-auto animate-fade-up" style={{ animationDelay: '0.3s' }}>
@@ -42,7 +50,7 @@ const HeroSection = ({ searchQuery, onSearchChange }: HeroSectionProps) => {
         </div>
 
         <div className="flex flex-wrap justify-center gap-4 mt-8 animate-fade-up" style={{ animationDelay: '0.4s' }}>
-          {['📡 Preços Rastreados', '💰 Até 70% OFF', '🏪 Maiores Marketplaces'].map((tag) => (
+          {tags.map((tag) => (
             <span key={tag} className="bg-primary-foreground/10 backdrop-blur-sm text-primary-foreground/90 px-4 py-2 rounded-full text-sm font-medium border border-primary-foreground/10">
               {tag}
             </span>
