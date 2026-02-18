@@ -30,6 +30,8 @@ export interface LeadModalConfig {
   hero_description: string;
   hero_tags: string[];
   hero_banner_url: string;
+  whatsapp_button_text: string;
+  whatsapp_card_link: string;
   updated_at: string;
 }
 
@@ -55,6 +57,8 @@ const DEFAULTS: Omit<LeadModalConfig, 'id' | 'updated_at'> = {
   hero_description: 'Rastreamos os menores precos dos maiores marketplaces do Brasil para voce. Economize ate 70% em milhares de produtos.',
   hero_tags: ['📡 Preços Rastreados', '💰 Até 70% OFF', '🏪 Maiores Marketplaces'],
   hero_banner_url: '',
+  whatsapp_button_text: 'Perguntar no WhatsApp',
+  whatsapp_card_link: '',
 };
 
 export function useLeadModalConfig() {
