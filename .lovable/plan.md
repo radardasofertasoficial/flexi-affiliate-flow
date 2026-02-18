@@ -1,62 +1,50 @@
 
 
-## Upload de Imagem + Visitas na Vitrine + Simplificar WhatsApp
+## Banner Editavel nas Configuracoes
 
-### Resumo das mudanças
+### O que muda
 
-1. **Upload de imagem do computador** — no formulário de produto, além do campo "URL da Imagem", haverá um botão para subir arquivo (JPG, JPEG, PNG) do computador. O arquivo será armazenado no storage e a URL gerada será usada como imagem do produto.
+1. **Textos do banner editaveis linha a linha** -- as 3 linhas de texto do banner (subtitulo, titulo, descricao) passam a ser configurados na aba de Configuracoes do admin, em vez de fixos no codigo.
 
-2. **Vitrine: trocar um botão WhatsApp por contador de visitas** — dos dois botões WhatsApp ("Vale a pena?" e "Perguntar"), manter apenas um ("Perguntar no WhatsApp"). No lugar do segundo, exibir um contador de visitas/cliques (ex: "👁 1.234 visitas").
+2. **Botoes/tags do banner editaveis** -- os 3 chips ("Precos Rastreados", "Ate 70% OFF", "Maiores Marketplaces") passam a ser uma lista editavel, onde voce pode adicionar, remover e editar cada um.
 
-3. **Novo campo: Visitas (views_count)** — novo campo no banco e no formulário admin para definir um número inicial de visitas. Com toggle para decidir se mostra ou não na vitrine.
+3. **Imagem de fundo do banner** -- nova opcao para fazer upload de uma imagem do computador (JPG, JPEG, PNG). Apos o upload, a imagem aparece como preview para confirmar. O tamanho recomendado sera exibido (1920x600px).
 
 ---
 
-### Detalhes técnicos
+### Detalhes tecnicos
 
-**Migração SQL:**
-```sql
-ALTER TABLE public.products
-ADD COLUMN views_count integer DEFAULT 0,
-ADD COLUMN show_views boolean DEFAULT false;
+**Migracao SQL -- novos campos na tabela `lead_modal_config`:**
+```text
+ALTER TABLE public.lead_modal_config
+ADD COLUMN hero_subtitle text NOT NULL DEFAULT 'Seu radar de ofertas ativo 24h',
+ADD COLUMN hero_title text NOT NULL DEFAULT 'Radar das Ofertas',
+ADD COLUMN hero_description text NOT NULL DEFAULT 'Rastreamos os menores precos dos maiores marketplaces do Brasil para voce. Economize ate 70% em milhares de produtos.',
+ADD COLUMN hero_tags jsonb NOT NULL DEFAULT '["📡 Precos Rastreados","💰 Ate 70% OFF","🏪 Maiores Marketplaces"]',
+ADD COLUMN hero_banner_url text NOT NULL DEFAULT '';
 ```
 
-**Storage — bucket para imagens de produtos:**
-```sql
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('product-images', 'product-images', true);
+**Hook (`src/hooks/useLeadModalConfig.ts`):**
+- Adicionar os 5 novos campos na interface `LeadModalConfig` e nos `DEFAULTS`
 
-CREATE POLICY "Anyone can view product images"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'product-images');
+**Admin Settings (`src/pages/admin/AdminSettings.tsx`):**
+- Nova secao "Banner da Pagina Inicial" com:
+  - Input "Subtitulo" (linha pequena acima do titulo)
+  - Input "Titulo" (titulo grande)
+  - Textarea "Descricao" (paragrafo abaixo do titulo)
+  - Lista editavel de tags/chips (adicionar, remover, editar -- igual ao modelo de badges)
+  - Upload de imagem de fundo com preview e indicacao de tamanho recomendado (1920x600px)
+  - Upload usa o bucket `product-images` ja existente
 
-CREATE POLICY "Admins can upload product images"
-ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'product-images' AND public.is_admin());
-
-CREATE POLICY "Admins can delete product images"
-ON storage.objects FOR DELETE
-USING (bucket_id = 'product-images' AND public.is_admin());
-```
-
-**Tipos (`src/types/database.ts`):**
-- Adicionar `views_count: number` e `show_views: boolean` ao `Product`
-- Adicionar `views_count?: number` e `show_views?: boolean` ao `ProductInsert`
-
-**Admin (`src/pages/admin/AdminProducts.tsx`):**
-- No campo de imagem, adicionar botão "Enviar arquivo" ao lado do input de URL
-- Aceitar `.jpg, .jpeg, .png`
-- Ao fazer upload, enviar para o bucket `product-images` e preencher o campo `image` com a URL pública
-- Novos campos: "Visitas" (number) e toggle "Mostrar visitas"
-- Atualizar `emptyProduct` e `openEdit` com os novos campos
-
-**Vitrine (`src/components/ProductCard.tsx`):**
-- Remover o botão "Vale a pena?" (WhatsApp)
-- Transformar a área de 2 botões em: 1 botão WhatsApp "Perguntar" (largura total) + exibição de visitas
-- Exibir "👁 X visitas" quando `show_views === true` e `views_count > 0`
+**HeroSection (`src/components/HeroSection.tsx`):**
+- Importar `useLeadModalConfig` para consumir os textos e imagem dinamicos
+- Substituir textos hardcoded pelos valores do config
+- Substituir import estatico da imagem pela URL do config (com fallback para a imagem atual)
+- Renderizar a lista de tags do config em vez do array fixo
 
 **Arquivos alterados:**
-- Nova migração SQL (storage bucket + colunas)
-- `src/types/database.ts` — novos campos
-- `src/pages/admin/AdminProducts.tsx` — upload de imagem + campos de visitas
-- `src/components/ProductCard.tsx` — simplificar botões + exibir visitas
+- Nova migracao SQL (5 colunas)
+- `src/hooks/useLeadModalConfig.ts` -- novos campos
+- `src/pages/admin/AdminSettings.tsx` -- nova secao "Banner"
+- `src/components/HeroSection.tsx` -- textos e imagem dinamicos
+
