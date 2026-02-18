@@ -50,6 +50,8 @@ export type Database = {
           step2_title: string
           tags: string[]
           updated_at: string
+          whatsapp_button_text: string
+          whatsapp_card_link: string
           whatsapp_group_link: string
           whatsapp_number: string
         }
@@ -70,6 +72,8 @@ export type Database = {
           step2_title?: string
           tags?: string[]
           updated_at?: string
+          whatsapp_button_text?: string
+          whatsapp_card_link?: string
           whatsapp_group_link?: string
           whatsapp_number?: string
         }
@@ -90,6 +94,8 @@ export type Database = {
           step2_title?: string
           tags?: string[]
           updated_at?: string
+          whatsapp_button_text?: string
+          whatsapp_card_link?: string
           whatsapp_group_link?: string
           whatsapp_number?: string
         }

@@ -41,6 +41,8 @@ const AdminSettings = () => {
   const [newHeroTag, setNewHeroTag] = useState('');
   const [heroBannerUrl, setHeroBannerUrl] = useState('');
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [waButtonText, setWaButtonText] = useState('Perguntar no WhatsApp');
+  const [waCardLink, setWaCardLink] = useState('');
   // Platform form state
   const [editingPlatform, setEditingPlatform] = useState<Platform | null>(null);
   const [pfName, setPfName] = useState('');
@@ -67,6 +69,8 @@ const AdminSettings = () => {
       setHeroDescription(config.hero_description || '');
       setHeroTags(config.hero_tags || []);
       setHeroBannerUrl(config.hero_banner_url || '');
+      setWaButtonText(config.whatsapp_button_text || 'Perguntar no WhatsApp');
+      setWaCardLink(config.whatsapp_card_link || '');
     }
   }, [config]);
 
@@ -89,6 +93,8 @@ const AdminSettings = () => {
         hero_description: heroDescription,
         hero_tags: heroTags,
         hero_banner_url: heroBannerUrl,
+        whatsapp_button_text: waButtonText,
+        whatsapp_card_link: waCardLink,
       });
       toast.success('Configurações salvas!');
     } catch {
@@ -407,6 +413,16 @@ const AdminSettings = () => {
           <div>
             <Label>Link do Grupo WhatsApp</Label>
             <Input value={whatsappLink} onChange={e => setWhatsappLink(e.target.value)} placeholder="https://chat.whatsapp.com/..." className="mt-1" />
+          </div>
+          <div>
+            <Label>Texto do botão WhatsApp (vitrine)</Label>
+            <Input value={waButtonText} onChange={e => setWaButtonText(e.target.value)} placeholder="Perguntar no WhatsApp" className="mt-1" />
+            <p className="text-xs text-muted-foreground mt-1">Texto exibido no botão verde dos cards de produto</p>
+          </div>
+          <div>
+            <Label>Link do botão WhatsApp (vitrine)</Label>
+            <Input value={waCardLink} onChange={e => setWaCardLink(e.target.value)} placeholder="https://chat.whatsapp.com/... ou vazio para wa.me + número" className="mt-1" />
+            <p className="text-xs text-muted-foreground mt-1">Se vazio, usa wa.me + número acima como fallback</p>
           </div>
         </CardContent>
       </Card>

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Product } from '@/types/database';
 import LeadCaptureModal, { isLeadRegistered } from '@/components/LeadCaptureModal';
 import { useActivePlatforms } from '@/hooks/usePlatforms';
+import { useLeadModalConfig } from '@/hooks/useLeadModalConfig';
 import { trackClickCTA } from '@/lib/tracking';
 
 interface ProductCardProps {
@@ -15,6 +16,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<'offer' | 'pergunta' | null>(null);
   const { data: platforms = [] } = useActivePlatforms();
+  const { data: modalConfig } = useLeadModalConfig();
 
   const platform = platforms.find(p => p.slug === product.store);
 
@@ -46,10 +48,15 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
     }
   };
 
+  const buildWhatsAppUrl = (message: string) => {
+    if (modalConfig?.whatsapp_card_link) return modalConfig.whatsapp_card_link;
+    const number = modalConfig?.whatsapp_number || '5515981184423';
+    return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+  };
+
   const handleWhatsApp = (message: string) => {
     if (isLeadRegistered()) {
-      const encoded = encodeURIComponent(message);
-      window.open(`https://wa.me/5515981184423?text=${encoded}`, '_blank', 'noopener,noreferrer');
+      window.open(buildWhatsAppUrl(message), '_blank', 'noopener,noreferrer');
     } else {
       setPendingAction('pergunta');
       setModalOpen(true);
@@ -60,8 +67,8 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
     if (pendingAction === 'offer') {
       logClickAndOpen();
     } else if (pendingAction === 'pergunta') {
-      const msg = encodeURIComponent(`Olá! Vi o produto ${product.title} no site e quero mais informações.`);
-      window.open(`https://wa.me/5515981184423?text=${msg}`, '_blank', 'noopener,noreferrer');
+      const msg = `Olá! Vi o produto ${product.title} no site e quero mais informações.`;
+      window.open(buildWhatsAppUrl(msg), '_blank', 'noopener,noreferrer');
     }
     setPendingAction(null);
   };
@@ -166,7 +173,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
               className="flex-1 flex items-center justify-center gap-1 bg-[#25D366] hover:bg-[#1da851] text-white text-[11px] font-medium py-2 px-1 rounded-lg transition-colors"
             >
               <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">Perguntar no WhatsApp</span>
+              <span className="truncate">{modalConfig?.whatsapp_button_text || 'Perguntar no WhatsApp'}</span>
             </button>
             {(product as any).show_views && ((product as any).views_count ?? 0) > 0 && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
